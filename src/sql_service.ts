@@ -1,19 +1,17 @@
-import * as mysql from 'mysql';
+import * as mysql from 'mysql'
 
-let instance: ZSqlService | null = null;
-const logError = (err: any) => {
-  if (err) throw err;
-};
-let creds: mysql.ConnectionConfig | undefined;
+let instance: ZSqlService | null = null
+const logError = (err: any) => { if (err) throw err }
 
 export class ZSqlService {
-  public static init(credentials: mysql.ConnectionConfig) {
-    creds = credentials;
-  }
+
+  constructor(
+    private credentials: mysql.ConnectionConfig
+  ) {}
 
   connect(): Promise<mysql.Connection> {
     return new Promise<any>((resolve, reject) => {
-      const con = mysql.createConnection(creds!);
+      const con = mysql.createConnection(this.credentials);
       con.connect((err: any) => {
         if (err) return reject(err);
         resolve(con);
@@ -33,9 +31,9 @@ export class ZSqlService {
     return output;
   }
 
-  static get(): ZSqlService {
+  static get(credentials?: mysql.ConnectionConfig): ZSqlService {
     if (instance == null) {
-      instance = new ZSqlService();
+      instance = new ZSqlService(credentials);
     }
     return instance;
   }
