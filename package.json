@@ -1,6 +1,6 @@
 {
   "name": "ztechno_core",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Core files for ztechno framework",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -13,7 +13,7 @@
   "scripts": {
     "test": "jest --config jestconfig.json",
     "build": "tsc",
-    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+    "format": "prettier --write \"lib/**/*.ts\" \"lib/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
