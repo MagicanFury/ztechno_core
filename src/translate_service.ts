@@ -95,14 +95,14 @@ export class ZTranslateService {
 
   public async translateHtml(html: string, cookies: { lang: string, [key: string]: string }): Promise<string> {
     const lang = this.getLang(cookies)
-    const defaultLang = this.getDefaultLang()
+    const srcLang = this.getSourceLang()
     const dom: ZDom = htmlParser.parseFromString(html)
     const htmlNodes: ZNode[] = dom.getElementsByTagName('html')
     const mainNodes: ZNode[] = dom.getElementsByTagName('main')
     const isView = htmlNodes.length === 0
     const domNode: ZNode = isView ? mainNodes[0] : htmlNodes[0]
 
-    if (lang !== defaultLang) {
+    if (lang !== srcLang) {
       const node: ZNode = isView ? domNode : domNode.getElementsByTagName('body')[0]
       const promises: Promise<any>[] = []
       this.translateHtmlRec(lang, node, promises)
