@@ -10,11 +10,8 @@ type MailOptions = {
 };
 
 export class ZMailService {
-  private opt: MailServiceOptions;
 
-  constructor(opt: MailServiceOptions) {
-    this.opt = opt;
-  }
+  constructor(private opt: MailServiceOptions) {}
 
   public send(mailOpts: MailOptions): Promise<any> {
     const mailTransporter = nodemailer.createTransport({
