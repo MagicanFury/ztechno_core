@@ -1,3 +1,4 @@
+import { ZDom, ZNode, ZNodeText } from 'ztechno_core';
 import { ZSqlService } from './sql_service';
 const DomParser = require('dom-parser');
 const translate = require('translate');
@@ -8,9 +9,9 @@ type TranslateData = { value: string; meta?: { prefix: string; suffix: string } 
 type dbTranslationRow = { lang: string; key: string; value: string };
 
 const sql = ZSqlService.get();
-let instance: TranslateService | null = null;
+let instance: ZTranslateService | null = null;
 
-export class TranslateService {
+export class ZTranslateService {
   private localCache: { [lang: string]: { [key: string]: TranslateData } } = {};
   public surpressErrors: boolean = true;
 
@@ -230,9 +231,9 @@ export class TranslateService {
     return sql.query(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`);
   }
 
-  static get(): TranslateService {
+  static get(): ZTranslateService {
     if (instance == null) {
-      instance = new TranslateService();
+      instance = new ZTranslateService();
     }
     return instance;
   }

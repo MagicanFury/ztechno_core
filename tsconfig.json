@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es5",
     "module": "commonjs",
     "declaration": true,
 
@@ -10,6 +10,10 @@
     "noImplicitAny": false,
     "allowJs": true,
     "esModuleInterop": true,
+    "typeRoots": [
+      "src/**/*",
+      "src/typings"
+    ]
   },
   "include": ["./src/**/*"],
   "exclude": [
