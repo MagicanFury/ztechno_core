@@ -18,7 +18,7 @@ export class ZTranslateService {
   public surpressErrors: boolean = true
 
   public getLanguages() { return this.opt.languages || ['en', 'nl'] }
-  public getSourceLang() { return this.opt.defaultLang || 'en' }
+  public getSourceLang() { return this.opt.sourceLang || 'en' }
   public getDefaultLang() { return this.opt.defaultLang || 'en' }
 
   constructor(private opt: { sqlService: ZSqlService, googleApiKey: string, languages?: string[], defaultLang?: string, sourceLang?: string }) {
