@@ -4,9 +4,9 @@
   "description": "Core files for ztechno framework",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "typings": "lib/index.d.ts",
   "license": "MIT",
   "author": "Ivan Auda (ZTechnologies International)",
-  "typings": "index.d.ts",
   "files": [
     "lib/**/*"
   ],
