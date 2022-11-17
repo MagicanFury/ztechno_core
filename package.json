@@ -1,6 +1,6 @@
 {
   "name": "ztechno_core",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Core files for ztechno framework",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -18,7 +18,6 @@
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
     "postversion": "git push && git push --tags",
-
     "update": "npm run build && npm version patch && npm publish"
   },
   "keywords": [
