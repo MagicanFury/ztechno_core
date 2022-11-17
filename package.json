@@ -1,6 +1,6 @@
 {
   "name": "ztechno_core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Core files for ztechno framework",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -15,11 +15,9 @@
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
     "lint": "tslint -p tsconfig.json",
-    "preversion" : "npm run lint",
-    "version" : "npm run format && git add -A src",
-    "postversion" : "git push && git push --tags",
-
-    "prod": "npm run preversion && npm run version && npm run postversion"
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "ztechno",
