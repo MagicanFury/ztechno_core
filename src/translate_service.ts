@@ -11,26 +11,20 @@ type dbTranslationRow = { lang: string; key: string; value: string }
 let instance: ZTranslateService | null = null
 
 export class ZTranslateService {
+
   private localCache: { [lang: string]: { [key: string]: TranslateData } } = {}
+  private get sql(): ZSqlService { return this.opt.sqlService }
+
   public surpressErrors: boolean = true
 
-  public getLanguages() {
-    return ['en', 'nl']
-  }
-  public getSourceLang() {
-    return 'nl'
-  }
-  public getDefaultLang() {
-    return 'nl'
-  }
+  public getLanguages() { return this.opt.languages || ['en', 'nl'] }
+  public getSourceLang() { return this.opt.defaultLang || 'en' }
+  public getDefaultLang() { return this.opt.defaultLang || 'en' }
 
-  constructor(private sql: ZSqlService) {
+  constructor(private opt: { sqlService: ZSqlService, googleApiKey: string, languages?: string[], defaultLang?: string, sourceLang?: string }) {
+    translate.key = opt.googleApiKey
     this.getLanguages().map((lang) => (this.localCache[lang] = {}))
     setInterval(() => this.clearLocalCache(), 1000 * 60 * 60) // Every Hour
-  }
-
-  public static init(opt: { key: string }) {
-    translate.key = opt.key
   }
 
   private codes: { [code: string]: string } = {
@@ -230,9 +224,9 @@ export class ZTranslateService {
     return this.sql.query(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
   }
 
-  static get(sqlService: ZSqlService): ZTranslateService {
+  static get(opt: { sqlService: ZSqlService, googleApiKey: string, languages?: string[], defaultLang?: string, sourceLang?: string }): ZTranslateService {
     if (instance == null) {
-      instance = new ZTranslateService(sqlService)
+      instance = new ZTranslateService(opt)
     }
     return instance
   }
