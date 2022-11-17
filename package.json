@@ -17,7 +17,9 @@
     "lint": "tslint -p tsconfig.json",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+
+    "update": "npm run build && npm version patch && npm publish"
   },
   "keywords": [
     "ztechno",

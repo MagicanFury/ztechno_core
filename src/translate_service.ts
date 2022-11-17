@@ -8,7 +8,6 @@ const htmlParser = new DomParser()
 type TranslateData = { value: string; meta?: { prefix: string; suffix: string } }
 type dbTranslationRow = { lang: string; key: string; value: string }
 
-const sql = ZSqlService.get()
 let instance: ZTranslateService | null = null
 
 export class ZTranslateService {
@@ -25,7 +24,7 @@ export class ZTranslateService {
     return 'nl'
   }
 
-  constructor() {
+  constructor(private sql: ZSqlService) {
     this.getLanguages().map((lang) => (this.localCache[lang] = {}))
     setInterval(() => this.clearLocalCache(), 1000 * 60 * 60) // Every Hour
   }
@@ -156,7 +155,7 @@ export class ZTranslateService {
   }
 
   public async update(key: string, lang: string, data: TranslateData) {
-    return await sql.query(
+    return await this.sql.query(
       `
       INSERT INTO translations
         (\`key\`, \`lang\`, \`value\`)
@@ -188,7 +187,7 @@ export class ZTranslateService {
   }
 
   private async fetch(key: string, lang: string): Promise<TranslateData | false> {
-    const results = await sql.query(`SELECT \`value\` FROM translations WHERE \`lang\`=? AND \`key\`=?`, [lang, key])
+    const results = await this.sql.query(`SELECT \`value\` FROM translations WHERE \`lang\`=? AND \`key\`=?`, [lang, key])
     if (results.length > 0) {
       // api.query(`UPDATE translations SET last_used=CURRENT_TIMESTAMP WHERE \`lang\`=? AND \`key\`=?`, [lang, key])
       //   .catch(err => console.error(err))
@@ -200,7 +199,7 @@ export class ZTranslateService {
   }
 
   private async insert(key: string, lang: string, data: TranslateData) {
-    await sql.query(`INSERT IGNORE INTO translations (\`key\`, \`lang\`, \`value\`) VALUES (?, ?, ?)`, [
+    await this.sql.query(`INSERT IGNORE INTO translations (\`key\`, \`lang\`, \`value\`) VALUES (?, ?, ?)`, [
       key,
       lang,
       data.value,
@@ -208,7 +207,7 @@ export class ZTranslateService {
   }
 
   private fetchLang(lang: string): Promise<dbTranslationRow[]> {
-    return sql.query(
+    return this.sql.query(
       `SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations WHERE \`lang\`=?`,
       [lang],
     )
@@ -228,12 +227,12 @@ export class ZTranslateService {
   }
 
   private fetchAll(): Promise<dbTranslationRow[]> {
-    return sql.query(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
+    return this.sql.query(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
   }
 
-  static get(): ZTranslateService {
+  static get(sqlService: ZSqlService): ZTranslateService {
     if (instance == null) {
-      instance = new ZTranslateService()
+      instance = new ZTranslateService(sqlService)
     }
     return instance
   }
