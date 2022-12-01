@@ -10,7 +10,7 @@ export class ZEngineBase {
   public static translateService?: ZTranslateService
   public static userService?: ZUserService
 
-  protected static start() {
+  protected static start(): any {
     throw new Error(`Please Override ZEngineBase`)
   }
 
