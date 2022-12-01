@@ -65,7 +65,7 @@ export class ZUserService {
       VALUES (?, ?, ?, ?)
     `, [name, this.saltPass({name, pass}), role, admin])
   }
-  
+
   public async auth({ name, pass }: ZUserCredentials) {
     const res = await this.sqlService.query(`
       SELECT id, name, role, admin, updated_at, created_at
