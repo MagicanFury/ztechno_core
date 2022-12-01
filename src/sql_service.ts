@@ -44,14 +44,14 @@ export class ZSqlService {
 
   private getPoolConnection(): Promise<mysql.PoolConnection> {
     return new Promise<any>((resolve, reject) => {
-      this.pool.getConnection((err: mysql.MysqlError, con: mysql.PoolConnection) => 
+      this.pool.getConnection((err: mysql.MysqlError, con: mysql.PoolConnection) =>
         (err) ? reject(err) : resolve(con))
     })
   }
 
   public async query(sql: string, escaped: any[] = []): Promise<any> {
     try {
-      let con: mysql.PoolConnection = await this.getPoolConnection()
+      const con: mysql.PoolConnection = await this.getPoolConnection()
       try {
         const output = await new Promise((resolve, reject) => {
           con.query(sql, escaped, (err, result) =>
