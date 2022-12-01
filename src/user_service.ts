@@ -47,7 +47,7 @@ export class ZUserService {
   private async createTable() {
     await this.sqlService.query(`
       CREATE TABLE \`${this.tableName}\` (
-        \`id\` int(10) unsigned zerofill NOT NULL,
+        \`id\` int(10) unsigned NOT NULL AUTO_INCREMENT,
         \`name\` varchar(64) NOT NULL,
         \`role\` varchar(64) DEFAULT NULL,
         \`pass\` varchar(512) NOT NULL,
