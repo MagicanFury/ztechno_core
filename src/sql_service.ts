@@ -3,6 +3,10 @@ import * as mysql from 'mysql'
 let instance: ZSqlService | null = null
 const handleError = (err: any) => { if (err) throw err }
 
+type ZEventType = 'err'|'log'
+type ZOnErrorCallback = (err: mysql.MysqlError) => any
+type ZOnLogCallback = (log: string) => any
+
 export class ZSqlService {
 
   private pool: mysql.Pool
@@ -10,6 +14,7 @@ export class ZSqlService {
     timeout: 20000,
     connectTimeout: 10
   }
+  private listeners: { [eventName: string]: (ZOnErrorCallback|ZOnLogCallback)[] } = {'err': [],'log': []}
 
   constructor(options: mysql.PoolConfig) {
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
@@ -23,6 +28,14 @@ export class ZSqlService {
     })
   }
 
+  public on(eventName: 'err', listener: ZOnErrorCallback)
+  public on(eventName: 'log', listener: ZOnLogCallback)
+  public on(eventName: ZEventType, listener: ZOnErrorCallback|ZOnLogCallback) {
+    if (!this.listeners.hasOwnProperty(eventName))
+      throw new Error(`EventName not supported for ZSqlService.on(${eventName}, ...)`)
+    this.listeners[eventName].push(listener)
+  }
+
   private getPoolConnection(): Promise<mysql.PoolConnection> {
     return new Promise<any>((resolve, reject) => {
       this.pool.getConnection((err: mysql.MysqlError, con: mysql.PoolConnection) => 
@@ -30,24 +43,28 @@ export class ZSqlService {
     })
   }
 
-  async query(sql: string, escaped: any[] = []): Promise<any> {
-    const con = await this.getPoolConnection()
+  public async query(sql: string, escaped: any[] = []): Promise<any> {
     try {
-      const output = await new Promise((resolve, reject) => {
-        con.query(sql, escaped, (err, result) =>
+      let con: mysql.PoolConnection = await this.getPoolConnection()
+      try {
+        const output = await new Promise((resolve, reject) => {
+          con.query(sql, escaped, (err, result) =>
           (err) ? reject(err) : resolve(result))
-      })
-      return output
+        })
+        con.release()
+        return output
+      } catch (err) {
+        con.release()
+        throw err
+      }
     } catch (err) {
-      handleError(err)
-    } finally {
-      con.release()
+      throw err
     }
   }
 
-  static get(credentials?: mysql.ConnectionConfig): ZSqlService {
+  public static get(options: mysql.PoolConfig): ZSqlService {
     if (instance == null) {
-      instance = new ZSqlService(credentials)
+      instance = new ZSqlService(options)
     }
     return instance
   }
