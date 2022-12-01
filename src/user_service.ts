@@ -33,6 +33,13 @@ export class ZUserService {
     return res.length > 0
   }
 
+  public async checkTableHasAdmin() {
+    const res = await this.sqlService.query(`
+      SELECT id FROM \`${this.tableName}\` WHERE admin=1
+    `)
+    return res.length > 0
+  }
+
   private async createTable() {
     await this.sqlService.query(`
       CREATE TABLE \`${this.tableName}\` (
@@ -69,7 +76,7 @@ export class ZUserService {
   public async auth({ name, pass }: ZUserCredentials) {
     const res = await this.sqlService.query(`
       SELECT id, name, role, admin, updated_at, created_at
-      FROM ${this.tableName}
+      FROM \`${this.tableName}\`
       WHERE name=? AND pass=?
     `, [name, this.hashPass({name, pass})])
     return (res.length === 1)
