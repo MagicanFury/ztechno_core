@@ -47,15 +47,11 @@ export class ZCryptoService {
       data = data.split('').map((c, i) => c + salt.charAt(i % salt.length)).join('')
     }
     let hash = data
-    for (let i = 0; i < itt; i++)
+    for (let i = 0; i < itt; i++) {
       hash = crypto.createHash(hashAlgorithm).update(hash).digest('hex')
-
-    const cut = itt.toString().length + 1
-    hash = `${cut}$${hash.substring(cut)}`
-    return {
-      salt,
-      data,
-      hash
     }
+    const cut = itt.toString().length + 1
+    hash = `${itt}$${hash.substring(cut)}`
+    return hash
   }
 }

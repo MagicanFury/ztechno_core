@@ -63,7 +63,7 @@ export class ZUserService {
     await this.sqlService.query(`
       INSERT INTO \`${this.tableName}\` (name, pass, role, admin)
       VALUES (?, ?, ?, ?)
-    `, [name, this.saltPass({name, pass}), role, admin])
+    `, [name, this.hashPass({name, pass}), role, admin])
   }
 
   public async auth({ name, pass }: ZUserCredentials) {
@@ -71,14 +71,13 @@ export class ZUserService {
       SELECT id, name, role, admin, updated_at, created_at
       FROM ${this.tableName}
       WHERE name=? AND pass=?
-    `, [name, this.saltPass({name, pass})])
+    `, [name, this.hashPass({name, pass})])
     return (res.length === 1)
   }
 
-  private saltPass({ name, pass }: ZUserCredentials): string {
+  private hashPass({ name, pass }: ZUserCredentials): string {
     const salt = name + this.salt
-    const { hash } = ZCryptoService.hash('sha256', pass, { saltMode: 'simple', salt })
-    return hash
+    return ZCryptoService.hash('sha256', pass, { saltMode: 'simple', salt })
   }
 
 }
