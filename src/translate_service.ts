@@ -8,8 +8,6 @@ const htmlParser = new DomParser()
 type TranslateData = { value: string; meta?: { prefix: string; suffix: string } }
 type dbTranslationRow = { lang: string; key: string; value: string }
 
-let instance: ZTranslateService | null = null
-
 export class ZTranslateService {
 
   private localCache: { [lang: string]: { [key: string]: TranslateData } } = {}
@@ -222,13 +220,6 @@ export class ZTranslateService {
 
   private fetchAll(): Promise<dbTranslationRow[]> {
     return this.sql.query(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
-  }
-
-  static get(opt: { sqlService: ZSqlService, googleApiKey: string, languages?: string[], defaultLang?: string, sourceLang?: string }): ZTranslateService {
-    if (instance == null) {
-      instance = new ZTranslateService(opt)
-    }
-    return instance
   }
 }
 

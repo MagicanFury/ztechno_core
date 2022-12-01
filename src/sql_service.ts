@@ -1,6 +1,5 @@
 import * as mysql from 'mysql'
 
-let instance: ZSqlService | null = null
 type ZEventType = 'err'|'log'
 type ZOnErrorCallback = (err: mysql.MysqlError) => any
 type ZOnLogCallback = (log: string) => any
@@ -72,12 +71,5 @@ export class ZSqlService {
     } catch (err) {
       throw err
     }
-  }
-
-  public static get(options: mysql.PoolConfig): ZSqlService {
-    if (instance == null) {
-      instance = new ZSqlService(options)
-    }
-    return instance
   }
 }

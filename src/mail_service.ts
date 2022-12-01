@@ -1,13 +1,12 @@
-const nodemailer = require('nodemailer');
 
-let instance: ZMailService | null = null
+const nodemailer = require('nodemailer')
 
 type MailServiceOptions = { auth: { user: string; pass: string }; mailSender: string }
 type MailOptions = {
   recipient: string
   subject: string
   body: string
-};
+}
 
 export class ZMailService {
 
@@ -33,10 +32,8 @@ export class ZMailService {
     })
   }
 
-  static get(opt: MailServiceOptions): ZMailService {
-    if (instance == null) {
-      instance = new ZMailService(opt)
-    }
-    return instance
-  }
+  // protected static service: ZMailService
+  // static getOrCreate(opt: MailServiceOptions): ZMailService {
+  //   return (ZMailService.service == null) ? (ZMailService.service = new ZMailService(opt)) : ZMailService.service
+  // }
 }
