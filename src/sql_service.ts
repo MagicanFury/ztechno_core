@@ -15,8 +15,10 @@ export class ZSqlService {
     acquireTimeout: 20000,
   }
   private listeners: { [eventName: string]: (ZOnErrorCallback|ZOnLogCallback)[] } = {'err': [],'log': []}
+  private databaseName: string
 
   constructor(options: mysql.PoolConfig) {
+    this.databaseName = options.database!
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
     this.pool.on('connection', (connection: mysql.Connection) => {
       connection.on('error', (err) => {
@@ -26,6 +28,10 @@ export class ZSqlService {
         this.triggerEvent('err', err)
       })
     })
+  }
+  
+  public get database(): string {
+    return this.databaseName
   }
 
   public on(eventName: 'err', listener: ZOnErrorCallback)
