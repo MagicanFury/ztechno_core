@@ -1,8 +1,6 @@
 import * as mysql from 'mysql'
 
 let instance: ZSqlService | null = null
-const handleError = (err: any) => { if (err) throw err }
-
 type ZEventType = 'err'|'log'
 type ZOnErrorCallback = (err: mysql.MysqlError) => any
 type ZOnLogCallback = (log: string) => any
@@ -11,8 +9,10 @@ export class ZSqlService {
 
   private pool: mysql.Pool
   private defaultPoolconfig: mysql.PoolConfig = {
+    connectionLimit: 10,
     timeout: 20000,
-    connectTimeout: 10
+    connectTimeout: 20000,
+    acquireTimeout: 20000,
   }
   private listeners: { [eventName: string]: (ZOnErrorCallback|ZOnLogCallback)[] } = {'err': [],'log': []}
 
