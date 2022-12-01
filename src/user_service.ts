@@ -12,6 +12,10 @@ type ZUserCredentials = {
   pass: string
 }
 
+type ZUserSession = {
+  session: string
+}
+
 export class ZUserService {
 
   private tableName: string
@@ -47,15 +51,17 @@ export class ZUserService {
         \`name\` varchar(64) NOT NULL,
         \`role\` varchar(64) DEFAULT NULL,
         \`pass\` varchar(512) NOT NULL,
-        \`admin\` tinyint(1) NOT NULL DEFAULT 0,
+        \`session\` varchar(512) NOT NULL,
+        \`admin\` tinyint(1) NOT NULL,
         \`updated_at\` datetime NOT NULL DEFAULT current_timestamp(),
         \`created_at\` datetime NOT NULL DEFAULT current_timestamp(),
         PRIMARY KEY (\`id\`),
         UNIQUE KEY \`name_UNIQUE\` (\`name\`),
         KEY \`name\` (\`name\`),
         KEY \`createdat\` (\`created_at\`),
-        KEY \`updatedat\` (\`updated_at\`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+        KEY \`updatedat\` (\`updated_at\`),
+        KEY \`session\` (\`session\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci
     `)
   }
 
@@ -66,20 +72,32 @@ export class ZUserService {
     }
   }
 
-  public async register({name, pass, role, admin}: ZRequiredUserColumns) {
+  public async register({name, pass, role, admin}: ZRequiredUserColumns): Promise<{ session: string }> {
+    const session = this.genSession({ name, pass })
     await this.sqlService.query(`
-      INSERT INTO \`${this.tableName}\` (name, pass, role, admin)
+      INSERT INTO \`${this.tableName}\` (name, pass, session, role, admin)
       VALUES (?, ?, ?, ?)
-    `, [name, this.hashPass({name, pass}), role, admin])
+    `, [name, this.hashPass({name, pass}), session, role, admin])
+    return { session }
   }
 
-  public async auth({ name, pass }: ZUserCredentials) {
-    const res = await this.sqlService.query(`
-      SELECT id, name, role, admin, updated_at, created_at
-      FROM \`${this.tableName}\`
-      WHERE name=? AND pass=?
-    `, [name, this.hashPass({name, pass})])
-    return (res.length === 1)
+  public async auth({ session }: ZUserSession): Promise<{session?: string, authenticated: boolean}>
+  public async auth({ name, pass }: ZUserCredentials): Promise<{session?: string, authenticated: boolean}>
+  public async auth(opt: Partial<ZUserSession & ZUserCredentials>): Promise<{session?: string, authenticated: boolean}> {
+    const res = await ((opt.session) ? this.sqlService.query(`
+      SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+      WHERE session=?`, [opt.session]
+    ) : this.sqlService.query(`
+      SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+      WHERE name=? AND pass=?`, [opt.name, this.hashPass(opt as any)]
+    ))
+    return (res.length === 0) ? { authenticated: false } : { session: res[0].session, authenticated: true }
+  }
+
+  private genSession({ name }: ZUserCredentials) {
+    const salt = this.salt
+    const data = name + (Date.now() * Math.random())
+    return ZCryptoService.hash('sha256', data, { saltMode: 'simple', salt })
   }
 
   private hashPass({ name, pass }: ZUserCredentials): string {
