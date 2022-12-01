@@ -20,10 +20,10 @@ export class ZSqlService {
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
     this.pool.on('connection', (connection: mysql.Connection) => {
       connection.on('error', (err) => {
-        console.error(new Date(), 'MySQL error', err.code)
+        this.triggerEvent('err', err)
       })
       connection.on('close', (err) => {
-        console.error(new Date(), 'MySQL close', err)
+        this.triggerEvent('err', err)
       })
     })
   }
@@ -34,6 +34,12 @@ export class ZSqlService {
     if (!this.listeners.hasOwnProperty(eventName))
       throw new Error(`EventName not supported for ZSqlService.on(${eventName}, ...)`)
     this.listeners[eventName].push(listener)
+  }
+
+  private triggerEvent(eventName: ZEventType, args: any[]) {
+    this.listeners[eventName].map((listener) => {
+      listener.apply(undefined, args)
+    })
   }
 
   private getPoolConnection(): Promise<mysql.PoolConnection> {
