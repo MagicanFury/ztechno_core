@@ -81,8 +81,7 @@ export class ZUserService {
     return { session }
   }
 
-  public async auth({ session }: ZUserSession): Promise<{session?: string, authenticated: boolean}>
-  public async auth({ name, pass }: ZUserCredentials): Promise<{session?: string, authenticated: boolean}>
+  public async auth(opt: ZUserSession|ZUserCredentials): Promise<{session?: string, authenticated: boolean}>
   public async auth(opt: Partial<ZUserSession & ZUserCredentials>): Promise<{session?: string, authenticated: boolean}> {
     const res = await ((opt.session) ? this.sqlService.query(`
       SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
