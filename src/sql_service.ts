@@ -29,7 +29,7 @@ export class ZSqlService {
       })
     })
   }
-  
+
   public get database(): string {
     return this.databaseName
   }

@@ -44,6 +44,7 @@ export class ZUserService {
         \`updated_at\` datetime NOT NULL DEFAULT current_timestamp(),
         \`created_at\` datetime NOT NULL DEFAULT current_timestamp(),
         PRIMARY KEY (\`id\`),
+        UNIQUE KEY \`name_UNIQUE\` (\`name\`),
         KEY \`name\` (\`name\`),
         KEY \`createdat\` (\`created_at\`),
         KEY \`updatedat\` (\`updated_at\`)
@@ -62,11 +63,22 @@ export class ZUserService {
     await this.sqlService.query(`
       INSERT INTO \`${this.tableName}\` (name, pass, role, admin)
       VALUES (?, ?, ?, ?)
-    `, [name, pass, role, admin])
+    `, [name, this.saltPass({name, pass}), role, admin])
+  }
+  
+  public async auth({ name, pass }: ZUserCredentials) {
+    const res = await this.sqlService.query(`
+      SELECT id, name, role, admin, updated_at, created_at
+      FROM ${this.tableName}
+      WHERE name=? AND pass=?
+    `, [name, this.saltPass({name, pass})])
+    return (res.length === 1)
   }
 
-  public async auth({ name, pass }: ZUserCredentials) {
-
+  private saltPass({ name, pass }: ZUserCredentials): string {
+    const salt = name + this.salt
+    const { hash } = ZCryptoService.hash('sha256', pass, { saltMode: 'simple', salt })
+    return hash
   }
 
 }

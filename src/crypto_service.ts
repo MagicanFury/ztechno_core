@@ -13,6 +13,7 @@ type HashStruct = {
 }
 
 export class ZCryptoService {
+
   public static encrypt(text: string): HashStruct {
     const cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv)
     let encrypted = cipher.update(text)
@@ -38,16 +39,14 @@ export class ZCryptoService {
     }
   }
 
-  public static hash(algorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { saltMode: 'none' })
-  public static hash(algorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { saltMode: 'simple', salt: string })
-  public static hash(algorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { saltMode: 'none'|'simple', salt?: string }) {
+  public static hash(hashAlgorithm: 'sha256'|'sha512'|'md5', data: string, opt?: {saltMode: 'none'}|{saltMode: 'simple', salt: string}) {
     if (opt && opt.saltMode === 'simple') {
-      const salt = opt.salt!
+      const salt = opt.salt
       data = data.split('').map((c, i) => c + salt.charAt(salt.length % i)).join('')
     }
     return {
       data,
-      hash: crypto.createHash(algorithm).update(data).digest('hex')
+      hash: crypto.createHash(hashAlgorithm).update(data).digest('hex')
     }
   }
 }
