@@ -40,7 +40,7 @@ export class ZCryptoService {
   }
 
   public static hash(hashAlgorithm: 'sha256'|'sha512'|'md5', data: string, opt?: {saltMode: 'none'}|{saltMode: 'simple', salt: string}) {
-    let salt = undefined
+    let salt
     if (opt && opt.saltMode === 'simple') {
       salt = opt.salt
       data = data.split('').map((c, i) => c + salt.charAt(salt.length % i)).join('')
