@@ -76,7 +76,7 @@ export class ZUserService {
     const session = this.genSession({ name, pass })
     await this.sqlService.query(`
       INSERT INTO \`${this.tableName}\` (name, pass, session, role, admin)
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?)
     `, [name, this.hashPass({name, pass}), session, role, admin])
     return { session }
   }
