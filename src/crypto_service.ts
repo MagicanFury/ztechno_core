@@ -37,4 +37,17 @@ export class ZCryptoService {
       throw new Error(`Couldn't decrypt JSON ${JSON.stringify(data)}`)
     }
   }
+
+  public static hash(algorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { saltMode: 'none' })
+  public static hash(algorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { saltMode: 'simple', salt: string })
+  public static hash(algorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { saltMode: 'none'|'simple', salt?: string }) {
+    if (opt && opt.saltMode === 'simple') {
+      const salt = opt.salt!
+      data = data.split('').map((c, i) => c + salt.charAt(salt.length % i)).join('')
+    }
+    return {
+      data,
+      hash: crypto.createHash(algorithm).update(data).digest('hex')
+    }
+  }
 }

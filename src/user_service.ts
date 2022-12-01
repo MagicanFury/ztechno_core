@@ -1,3 +1,4 @@
+import { ZCryptoService } from "./crypto_service"
 import { ZSqlService } from "./sql_service"
 
 type ZRequiredUserColumns = {
@@ -6,15 +7,21 @@ type ZRequiredUserColumns = {
   pass: string
   admin: 0|1
 }
+type ZUserCredentials = {
+  name: string
+  pass: string
+}
 
 export class ZUserService {
 
   private tableName: string
   private sqlService: ZSqlService
+  private salt: string
 
   constructor({ sqlService, tableName }: { sqlService: ZSqlService, tableName?: string }) {
     this.sqlService = sqlService
     this.tableName = tableName || 'users'
+    this.salt = sqlService.database
   }
 
   private async checkTableExists() {
@@ -56,6 +63,10 @@ export class ZUserService {
       INSERT INTO \`${this.tableName}\` (name, pass, role, admin)
       VALUES (?, ?, ?, ?)
     `, [name, pass, role, admin])
+  }
+
+  public async auth({ name, pass }: ZUserCredentials) {
+
   }
 
 }
