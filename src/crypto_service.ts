@@ -39,16 +39,23 @@ export class ZCryptoService {
     }
   }
 
-  public static hash(hashAlgorithm: 'sha256'|'sha512'|'md5', data: string, opt?: {saltMode: 'none'}|{saltMode: 'simple', salt: string}) {
+  public static hash(hashAlgorithm: 'sha256'|'sha512'|'md5', data: string, opt?: { itt?: number } & ({saltMode: 'none'}|{saltMode: 'simple', salt: string})) {
+    const itt = opt?.itt || 1
     let salt: string|undefined
     if (opt && opt.saltMode === 'simple') {
       salt = opt.salt
       data = data.split('').map((c, i) => c + salt.charAt(i % salt.length)).join('')
     }
+    let hash = data
+    for (let i = 0; i < itt; i++)
+      hash = crypto.createHash(hashAlgorithm).update(hash).digest('hex')
+
+    const cut = itt.toString().length + 1
+    hash = `${cut}$${hash.substring(cut)}`
     return {
       salt,
       data,
-      hash: crypto.createHash(hashAlgorithm).update(data).digest('hex')
+      hash
     }
   }
 }
