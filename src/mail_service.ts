@@ -10,8 +10,7 @@ export class ZMailService {
 
   constructor(private opt: MailServiceOptions) {}
 
-  public send(mailOpts: MailOptionsText): Promise<any>
-  public send(mailOpts: MailOptionsHtml): Promise<any>
+  public send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<any>
   public send(mailOpts: MailOptions): Promise<any> {
     const mailTransporter = nodemailer.createTransport({
       service: 'gmail',
