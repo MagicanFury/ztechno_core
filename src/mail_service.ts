@@ -2,16 +2,16 @@
 const nodemailer = require('nodemailer')
 
 type MailServiceOptions = { auth: { user: string; pass: string }; mailSender: string }
-type MailOptions = {
-  recipient: string
-  subject: string
-  body: string
-}
+type MailOptionsText = { recipient: string, subject: string, body: string }
+type MailOptionsHtml = { recipient: string, subject: string, html: string }
+type MailOptions = { recipient: string, subject: string, body?: string, html?: string }
 
 export class ZMailService {
 
   constructor(private opt: MailServiceOptions) {}
 
+  public send(mailOpts: MailOptionsText): Promise<any>
+  public send(mailOpts: MailOptionsHtml): Promise<any>
   public send(mailOpts: MailOptions): Promise<any> {
     const mailTransporter = nodemailer.createTransport({
       service: 'gmail',
@@ -22,7 +22,7 @@ export class ZMailService {
       from: this.opt.mailSender,
       to: mailOpts.recipient,
       subject: mailOpts.subject,
-      text: mailOpts.body,
+      text: mailOpts.body || mailOpts.html,
     }
 
     return new Promise((resolve, reject) => {
