@@ -21,7 +21,8 @@ export class ZMailService {
       from: mailOpts.from || this.opt.mailSender,
       to: mailOpts.recipient,
       subject: mailOpts.subject,
-      text: mailOpts.body || mailOpts.html,
+      text: mailOpts.body || undefined,
+      html: mailOpts.html || undefined
     }
 
     return new Promise((resolve, reject) => {
