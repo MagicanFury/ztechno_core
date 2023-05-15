@@ -16,10 +16,22 @@ export class ZSqlService {
   private listeners: { [eventName: string]: (ZOnErrorCallback|ZOnLogCallback)[] } = {'err': [],'log': []}
   private databaseName: string
 
+  public get database(): string {
+    return this.databaseName
+  }
+
   constructor(options: mysql.PoolConfig) {
     this.databaseName = options.database!
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
     this.pool.on('connection', (connection: mysql.Connection) => {
+      connection.config.queryFormat = function (query, values) {
+        if (!values) {
+          return query
+        }
+        return query.replace(/\:(\w+)/g, function (txt: any, key: any) {
+          return (values.hasOwnProperty(key)) ? this.escape(values[key]) : txt
+        }.bind(this))
+      }
       connection.on('error', (err) => {
         this.triggerEvent('err', err)
       })
@@ -29,13 +41,9 @@ export class ZSqlService {
     })
   }
 
-  public get database(): string {
-    return this.databaseName
-  }
-
-  public on(eventName: 'err', listener: ZOnErrorCallback)
-  public on(eventName: 'log', listener: ZOnLogCallback)
-  public on(eventName: ZEventType, listener: ZOnErrorCallback|ZOnLogCallback) {
+  public on(eventName: 'err', listener: ZOnErrorCallback): void
+  public on(eventName: 'log', listener: ZOnLogCallback): void
+  public on(eventName: ZEventType, listener: ZOnErrorCallback|ZOnLogCallback): void {
     if (!this.listeners.hasOwnProperty(eventName))
       throw new Error(`EventName not supported for ZSqlService.on(${eventName}, ...)`)
     this.listeners[eventName].push(listener)
@@ -54,13 +62,14 @@ export class ZSqlService {
     })
   }
 
-  public async query(sql: string, escaped: any[] = []): Promise<any> {
+  public async query<T = any>(sql: string, params?: {[key: string]: any}): Promise<T[]>
+  public async query<T = any>(sql: string, params?: any[]): Promise<T[]>
+  public async query<T = any>(sql: string, params: any): Promise<T[]> {
     try {
       const con: mysql.PoolConnection = await this.getPoolConnection()
       try {
-        const output = await new Promise((resolve, reject) => {
-          con.query(sql, escaped, (err, result) =>
-          (err) ? reject(err) : resolve(result))
+        const output = await new Promise<T[]>((resolve, reject) => {
+          con.query(sql, params, (err, result) => (err) ? reject(err) : resolve(result))
         })
         con.release()
         return output
