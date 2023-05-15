@@ -24,14 +24,8 @@ export class ZSqlService {
     this.databaseName = options.database!
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
     this.pool.on('connection', (connection: mysql.Connection) => {
-      connection.config.queryFormat = function (query, values) {
-        if (!values) {
-          return query
-        }
-        return query.replace(/\:(\w+)/g, function (txt: any, key: any) {
-          return (values.hasOwnProperty(key)) ? this.escape(values[key]) : txt
-        }.bind(this))
-      }
+      // connection.config.queryFormat = function (query, values) {
+      // }
       connection.on('error', (err) => {
         this.triggerEvent('err', err)
       })
@@ -69,7 +63,12 @@ export class ZSqlService {
       const con: mysql.PoolConnection = await this.getPoolConnection()
       try {
         const output = await new Promise<T[]>((resolve, reject) => {
-          con.query(sql, params, (err, result) => (err) ? reject(err) : resolve(result))
+          if (Array.isArray(params)) {
+            con.query(sql, params, (err, result) => (err) ? reject(err) : resolve(result))
+          } else {
+            sql = this.formatQueryParams(con, sql, params)
+            con.query(sql, (err, result) => (err) ? reject(err) : resolve(result))
+          }
         })
         con.release()
         return output
@@ -80,5 +79,14 @@ export class ZSqlService {
     } catch (err) {
       throw err
     }
+  }
+
+  private formatQueryParams(con: mysql.PoolConnection, query, values) {
+    if (!values) {
+      return query
+    }
+    return query.replace(/\:(\w+)/g, (txt: any, key: any) => {
+      return (values.hasOwnProperty(key)) ? con.escape(values[key]) : txt
+    })
   }
 }
