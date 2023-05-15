@@ -62,7 +62,9 @@ export class ZSqlService {
     })
   }
 
-  public async query<T = any>(sql: string, params?: any[]|{[key: string]: any}): Promise<(T[] & { insertId?: number })> {
+  public async query(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}>
+  public async query<T = any>(sql: string, params?: any[]|{[key: string]: any}): Promise<T>
+  public async query<T>(sql: string, params?: any[]|{[key: string]: any}): Promise<any> {
     try {
       const con: mysql.PoolConnection = await this.getPoolConnection()
       try {

@@ -29,7 +29,7 @@ export class ZUserService {
   }
 
   private async checkTableExists() {
-    const res = await this.sqlService.query(`
+    const res = await this.sqlService.query<any[]>(`
       SELECT ENGINE, VERSION, CREATE_TIME FROM information_schema.tables
       WHERE table_schema = '${this.sqlService.database}' AND table_name = '${this.tableName}'
       LIMIT 1
@@ -38,7 +38,7 @@ export class ZUserService {
   }
 
   public async checkTableHasAdmin() {
-    const res = await this.sqlService.query(`
+    const res = await this.sqlService.query<any[]>(`
       SELECT id FROM \`${this.tableName}\` WHERE admin=1
     `)
     return res.length > 0
@@ -86,10 +86,10 @@ export class ZUserService {
     if (!opt.session || (!opt.name && !opt.pass)) {
       return { authenticated: false }
     }
-    const res = await ((opt.session) ? this.sqlService.query(`
+    const res = await ((opt.session) ? this.sqlService.query<any[]>(`
       SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE session=?`, [opt.session]
-    ) : this.sqlService.query(`
+    ) : this.sqlService.query<any[]>(`
       SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE name=? AND pass=?`, [opt.name, this.hashPass(opt as any)]
     ))

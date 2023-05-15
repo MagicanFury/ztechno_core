@@ -179,7 +179,7 @@ export class ZTranslateService {
   }
 
   private async fetch(key: string, lang: string): Promise<TranslateData | false> {
-    const results = await this.sql.query(`SELECT \`value\` FROM translations WHERE \`lang\`=? AND \`key\`=?`, [lang, key])
+    const results = await this.sql.query<any>(`SELECT \`value\` FROM translations WHERE \`lang\`=? AND \`key\`=?`, [lang, key])
     if (results.length > 0) {
       // api.query(`UPDATE translations SET last_used=CURRENT_TIMESTAMP WHERE \`lang\`=? AND \`key\`=?`, [lang, key])
       //   .catch(err => console.error(err))
@@ -199,7 +199,7 @@ export class ZTranslateService {
   }
 
   private fetchLang(lang: string): Promise<dbTranslationRow[]> {
-    return this.sql.query(
+    return this.sql.query<any>(
       `SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations WHERE \`lang\`=?`,
       [lang],
     )
@@ -219,7 +219,7 @@ export class ZTranslateService {
   }
 
   private fetchAll(): Promise<dbTranslationRow[]> {
-    return this.sql.query(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
+    return this.sql.query<dbTranslationRow[]>(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
   }
 }
 
