@@ -1,6 +1,6 @@
 {
   "name": "ztechno_core",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "description": "Core files for ztechno framework",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
