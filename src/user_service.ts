@@ -83,7 +83,7 @@ export class ZUserService {
 
   public async auth(opt: ZUserSession|ZUserCredentials): Promise<{session?: string, authenticated: boolean}>
   public async auth(opt: Partial<ZUserSession & ZUserCredentials>): Promise<{session?: string, authenticated: boolean}> {
-    if (!opt.session || (!opt.name && !opt.pass)) {
+    if (!opt.session && (!opt.name && !opt.pass)) {
       return { authenticated: false }
     }
     const res = await ((opt.session) ? this.sqlService.query<any[]>(`
