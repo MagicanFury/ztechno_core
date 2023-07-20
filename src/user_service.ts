@@ -1,6 +1,15 @@
-import { ZUser } from "ztechno_core"
 import { ZCryptoService } from "./crypto_service"
 import { ZSqlService } from "./sql_service"
+
+type ZUser = {
+  id: number
+  name: string
+  session: string
+  role: string|null
+  admin: 0|1
+  updated_at: any
+  created_at: any
+}
 
 type ZRequiredUserColumns = {
   name: string
