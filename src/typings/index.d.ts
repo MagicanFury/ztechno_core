@@ -24,4 +24,14 @@ declare module 'ztechno_core' {
   export type ZNodeText = {
     text: string;
   } & ZNode;
+
+  export type ZUser = {
+    id: number
+    name: string
+    session: string
+    role: string|null
+    admin: 0|1
+    updated_at: any
+    created_at: any
+  }
 }

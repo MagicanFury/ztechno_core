@@ -1,3 +1,4 @@
+import { ZUser } from "ztechno_core"
 import { ZCryptoService } from "./crypto_service"
 import { ZSqlService } from "./sql_service"
 
@@ -81,19 +82,27 @@ export class ZUserService {
     return { session }
   }
 
-  public async auth(opt: ZUserSession|ZUserCredentials): Promise<{session?: string, authenticated: boolean}>
-  public async auth(opt: Partial<ZUserSession & ZUserCredentials>): Promise<{session?: string, authenticated: boolean}> {
+  public async find(opt: { email: string }): Promise<ZUser|undefined> {
+    const rows = await this.sqlService.query<ZUser[]>(`
+      SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+      WHERE name=?`, [opt.email]
+    )
+    return rows[0]
+  }
+
+  public async auth(opt: ZUserSession|ZUserCredentials): Promise<{user?: ZUser, session?: string, authenticated: boolean}>
+  public async auth(opt: Partial<ZUserSession & ZUserCredentials>): Promise<{user?: ZUser, session?: string, authenticated: boolean}> {
     if (!opt.session && (!opt.name && !opt.pass)) {
       return { authenticated: false }
     }
-    const res = await ((opt.session) ? this.sqlService.query<any[]>(`
+    const res = await ((opt.session) ? this.sqlService.query<ZUser[]>(`
       SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE session=?`, [opt.session]
-    ) : this.sqlService.query<any[]>(`
+    ) : this.sqlService.query<ZUser[]>(`
       SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE name=? AND pass=?`, [opt.name, this.hashPass(opt as any)]
     ))
-    return (res.length === 0) ? { authenticated: false } : { session: res[0].session, authenticated: true }
+    return (res.length === 0) ? { authenticated: false } : { user: res[0], session: res[0].session, authenticated: true }
   }
 
   private genSession({ name }: ZUserCredentials) {
