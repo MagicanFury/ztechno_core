@@ -1,4 +1,5 @@
 import * as crypto from 'crypto'
+import { HashStruct } from '.'
 
 const algorithm = 'aes-256-cbc'
 const key = Buffer.from([
@@ -6,11 +7,6 @@ const key = Buffer.from([
   149, 40, 211, 218, 217, 3,
 ])
 const iv = Buffer.from([0, 209, 223, 20, 147, 45, 14, 107, 93, 6, 76, 206, 176, 55, 245, 134])
-
-type HashStruct = {
-  iv: string;
-  encryptedData: string;
-}
 
 export class ZCryptoService {
 

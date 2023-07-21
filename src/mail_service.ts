@@ -1,10 +1,7 @@
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailServiceOptions } from "."
 
 const nodemailer = require('nodemailer')
 
-type MailServiceOptions = { auth: { user: string; pass: string }; mailSender: string }
-type MailOptionsText = { recipient: string, subject: string, from?: string, body: string }
-type MailOptionsHtml = { recipient: string, subject: string, from?: string, html: string }
-type MailOptions = { recipient: string, subject: string, from?: string, body?: string, html?: string }
 
 export class ZMailService {
 

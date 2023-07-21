@@ -5,6 +5,5 @@ import { ZSqlService } from './sql_service';
 import { ZTranslateService } from './translate_service';
 import { ZUserService } from './user_service';
 
+export * from 'ztechno_core';
 export { ZCryptoService, ZMailService, ZSqlService, ZTranslateService, ZUserService, ZEngineBase };
-// declare module 'ztechno_core' {
-// }

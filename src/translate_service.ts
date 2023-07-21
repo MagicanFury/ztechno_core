@@ -1,12 +1,11 @@
-import { ZDom, ZNode, ZNodeText } from 'ztechno_core'
 import { ZSqlService } from './sql_service'
+import { TranslateData, ZDom, ZNode, ZNodeText, dbTranslationRow } from '.'
 const DomParser = require('dom-parser')
 const translate = require('translate')
 
 const htmlParser = new DomParser()
 
-type TranslateData = { value: string; meta?: { prefix: string; suffix: string } }
-type dbTranslationRow = { lang: string; key: string; value: string }
+
 
 export class ZTranslateService {
 
