@@ -25,7 +25,7 @@ export class ZUserService {
 
   public async checkTableHasAdmin() {
     const res = await this.sqlService.query<any[]>(`
-      SELECT id FROM \`${this.tableName}\` WHERE admin=1
+      SELECT user_id FROM \`${this.tableName}\` WHERE admin=1
     `)
     return res.length > 0
   }
@@ -33,7 +33,7 @@ export class ZUserService {
   private async createTable() {
     await this.sqlService.query(`
       CREATE TABLE \`${this.tableName}\` (
-        \`id\` int(10) unsigned NOT NULL AUTO_INCREMENT,
+        \`user_id\` int(10) unsigned NOT NULL AUTO_INCREMENT,
         \`email\` varchar(64) NOT NULL,
         \`role\` varchar(64) DEFAULT NULL,
         \`pass\` varchar(512) NOT NULL,
@@ -41,7 +41,7 @@ export class ZUserService {
         \`admin\` tinyint(1) NOT NULL,
         \`updated_at\` datetime NOT NULL DEFAULT current_timestamp(),
         \`created_at\` datetime NOT NULL DEFAULT current_timestamp(),
-        PRIMARY KEY (\`id\`),
+        PRIMARY KEY (\`user_id\`),
         UNIQUE KEY \`email_UNIQUE\` (\`email\`),
         KEY \`email\` (\`email\`),
         KEY \`createdat\` (\`created_at\`),
@@ -69,8 +69,8 @@ export class ZUserService {
 
   public async find(opt: { email: string }): Promise<ZUser|undefined> {
     const rows = await this.sqlService.query<ZUser[]>(`
-      SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
-      WHERE name=?`, [opt.email]
+      SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+      WHERE email=?`, [opt.email]
     )
     return rows[0]
   }
@@ -81,23 +81,23 @@ export class ZUserService {
       return { authenticated: false }
     }
     const res = await ((opt.session) ? this.sqlService.query<ZUser[]>(`
-      SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+      SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE session=?`, [opt.session]
     ) : this.sqlService.query<ZUser[]>(`
-      SELECT id, name, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
-      WHERE name=? AND pass=?`, [opt.email, this.hashPass(opt as any)]
+      SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+      WHERE email=? AND pass=?`, [opt.email, this.hashPass(opt as any)]
     ))
     return (res.length === 0) ? { authenticated: false } : { user: res[0], session: res[0].session, authenticated: true }
   }
 
-  private genSession({ email: name }: ZUserCredentials) {
+  private genSession({ email }: ZUserCredentials) {
     const salt = this.salt
-    const data = name + (Date.now() * Math.random())
+    const data = email + (Date.now() * Math.random())
     return ZCryptoService.hash('sha256', data, { saltMode: 'simple', salt })
   }
 
   private hashPass({ email, pass }: ZUserCredentials): string {
-    const salt = name + this.salt
+    const salt = email + this.salt
     return ZCryptoService.hash('sha256', pass, { saltMode: 'simple', salt })
   }
 

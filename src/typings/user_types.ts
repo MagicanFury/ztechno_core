@@ -1,5 +1,5 @@
 export type ZUser = {
-  id: number
+  user_id: number
   email: string
   session: string
   role: string | null
