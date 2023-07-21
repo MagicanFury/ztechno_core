@@ -5,8 +5,6 @@ const translate = require('translate')
 
 const htmlParser = new DomParser()
 
-
-
 export class ZTranslateService {
 
   private localCache: { [lang: string]: { [key: string]: TranslateData } } = {}
@@ -146,16 +144,18 @@ export class ZTranslateService {
   }
 
   public async update(key: string, lang: string, data: TranslateData) {
-    return await this.sql.query(
-      `
+    const res = await this.sql.query(`
       INSERT INTO translations
         (\`key\`, \`lang\`, \`value\`)
       VALUES
-        (?, ?, ?)
-      ON DUPLICATE KEY UPDATE value=?
-    `,
-      [key, lang, data.value, data.value],
-    )
+        (:key, :lang, :value)
+      ON DUPLICATE KEY UPDATE value=:value
+    `, { key, lang, value: data.value })
+
+    if (res.affectedRows) {
+      this.insertLocalCache(key, lang, data)
+    }
+    return res
   }
 
   private checkLocalCache(key: string, lang: string): TranslateData | false {
