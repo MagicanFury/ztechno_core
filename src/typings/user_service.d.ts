@@ -1,4 +1,4 @@
-declare module 'ztechno_core_types' {
+declare namespace ztechno_core_types {
   export type ZUser = {
     id: number
     email: string
@@ -24,3 +24,5 @@ declare module 'ztechno_core_types' {
     session: string
   }
 }
+
+export = ztechno_core_types

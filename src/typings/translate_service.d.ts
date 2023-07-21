@@ -1,4 +1,4 @@
-declare module 'ztechno_core_types' {
+declare namespace ztechno_core_types {
   export type ZDom = {} & ZNode
   export type ZNode = {
     getAttribute: (attr: string) => string;
@@ -25,3 +25,5 @@ declare module 'ztechno_core_types' {
   export type TranslateData = { value: string; meta?: { prefix: string; suffix: string } }
   export type dbTranslationRow = { lang: string; key: string; value: string }
 }
+
+export = ztechno_core_types

@@ -1,5 +1,5 @@
 import * as crypto from 'crypto'
-import { HashStruct } from '.'
+import { HashStruct } from './typings/crypto_service'
 
 const algorithm = 'aes-256-cbc'
 const key = Buffer.from([

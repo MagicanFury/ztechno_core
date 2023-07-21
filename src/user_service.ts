@@ -1,6 +1,6 @@
-import { ZRequiredUserColumns, ZUser, ZUserCredentials, ZUserSession } from "."
 import { ZCryptoService } from "./crypto_service"
 import { ZSqlService } from "./sql_service"
+import { ZRequiredUserColumns, ZUser, ZUserSession, ZUserCredentials } from "./typings/user_service"
 
 export class ZUserService {
 
