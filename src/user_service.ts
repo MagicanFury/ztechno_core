@@ -67,8 +67,7 @@ export class ZUserService {
     return { session }
   }
 
-  public async find(opt: { email: string }): Promise<ZUser|undefined> 
-  public async find(opt: { user_id: number }): Promise<ZUser|undefined> 
+  public async find(opt: { email: string }|{ user_id: number }): Promise<ZUser|undefined>
   public async find(opt: any): Promise<ZUser|undefined> {
     if (opt.email !== undefined) {
       const rows = await this.sqlService.query<ZUser[]>(`
