@@ -66,7 +66,7 @@ export class ZUserService {
         \`updated_at\` datetime NOT NULL DEFAULT current_timestamp(),
         \`created_at\` datetime NOT NULL DEFAULT current_timestamp(),
         PRIMARY KEY (\`id\`),
-        UNIQUE KEY \`name_UNIQUE\` (\`email\`),
+        UNIQUE KEY \`email_UNIQUE\` (\`email\`),
         KEY \`email\` (\`email\`),
         KEY \`createdat\` (\`created_at\`),
         KEY \`updatedat\` (\`updated_at\`),
