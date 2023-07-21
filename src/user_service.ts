@@ -82,6 +82,8 @@ export class ZUserService {
         WHERE user_id=?`, [opt.user_id]
       )
       return rows[0]
+    } else {
+      throw new Error(`Unexpected Input for ZUserService.find(${JSON.stringify(opt)})`)
     }
   }
 
