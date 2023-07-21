@@ -67,12 +67,22 @@ export class ZUserService {
     return { session }
   }
 
-  public async find(opt: { email: string }): Promise<ZUser|undefined> {
-    const rows = await this.sqlService.query<ZUser[]>(`
-      SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
-      WHERE email=?`, [opt.email]
-    )
-    return rows[0]
+  public async find(opt: { email: string }): Promise<ZUser|undefined> 
+  public async find(opt: { user_id: number }): Promise<ZUser|undefined> 
+  public async find(opt: any): Promise<ZUser|undefined> {
+    if (opt.email !== undefined) {
+      const rows = await this.sqlService.query<ZUser[]>(`
+        SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+        WHERE email=?`, [opt.email]
+      )
+      return rows[0]
+    } else if (opt.user_id !== undefined) {
+      const rows = await this.sqlService.query<ZUser[]>(`
+        SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
+        WHERE user_id=?`, [opt.user_id]
+      )
+      return rows[0]
+    }
   }
 
   public async auth(opt: ZUserSession|ZUserCredentials): Promise<{user?: ZUser, session?: string, authenticated: boolean}>
