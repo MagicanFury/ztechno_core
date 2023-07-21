@@ -1,7 +1,6 @@
-import { MailOptions, MailOptionsHtml, MailOptionsText, MailServiceOptions } from "."
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailServiceOptions } from "./typings/mail_service"
 
 const nodemailer = require('nodemailer')
-
 
 export class ZMailService {
 
