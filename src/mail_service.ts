@@ -1,4 +1,4 @@
-import { MailOptions, MailOptionsHtml, MailOptionsText, MailServiceOptions } from "./typings/mail_service"
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailServiceOptions } from "./typings/mail_types"
 
 const nodemailer = require('nodemailer')
 
