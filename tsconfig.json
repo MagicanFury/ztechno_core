@@ -12,7 +12,7 @@
     "esModuleInterop": true,
     "typeRoots": [
       "src/**/*",
-      "src/typings"
+      "src/typings/**/*"
     ]
   },
   "include": ["./src/**/*"],

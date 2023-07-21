@@ -1,30 +1,6 @@
+import { ZRequiredUserColumns, ZUser, ZUserCredentials, ZUserSession } from "."
 import { ZCryptoService } from "./crypto_service"
 import { ZSqlService } from "./sql_service"
-
-type ZUser = {
-  id: number
-  email: string
-  session: string
-  role: string|null
-  admin: 0|1
-  updated_at: any
-  created_at: any
-}
-
-type ZRequiredUserColumns = {
-  email: string
-  role: string|null
-  pass: string
-  admin: 0|1
-}
-type ZUserCredentials = {
-  email: string
-  pass: string
-}
-
-type ZUserSession = {
-  session: string
-}
 
 export class ZUserService {
 

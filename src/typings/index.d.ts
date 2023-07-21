@@ -1,4 +1,4 @@
-declare module 'ztechno_core' {
+declare module 'ztechno_core/types' {
 
 
   
