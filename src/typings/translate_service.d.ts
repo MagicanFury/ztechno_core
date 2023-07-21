@@ -1,4 +1,4 @@
-declare module 'ztechno_core/types' {
+declare module 'ztechno_core_types' {
   export type ZDom = {} & ZNode
   export type ZNode = {
     getAttribute: (attr: string) => string;
