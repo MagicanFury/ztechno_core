@@ -67,6 +67,19 @@ export class ZUserService {
     return { session }
   }
 
+  public async fetch(opt?: { limit: number }) {
+    const rows = await this.sqlService.query<any[]>(`
+      SELECT user_id, email, role, admin, created_at FROM \`${this.tableName}\`
+      LIMIT :limit
+    `, { opt })
+    return rows
+  }
+
+  public async exists(opt: { email: string }|{ user_id: number }): Promise<boolean> {
+    const user = await this.find(opt) 
+    return user !== undefined
+  }
+
   public async find(opt: { email: string }|{ user_id: number }): Promise<ZUser|undefined>
   public async find(opt: any): Promise<ZUser|undefined> {
     if (opt.email !== undefined) {
