@@ -70,8 +70,8 @@ export class ZUserService {
   public async fetch(opt?: { limit: number }) {
     const rows = await this.sqlService.query<any[]>(`
       SELECT user_id, email, role, admin, created_at FROM \`${this.tableName}\`
-      LIMIT :limit
-    `, { opt })
+      LIMIT ?
+    `, [opt.limit])
     return rows
   }
 
