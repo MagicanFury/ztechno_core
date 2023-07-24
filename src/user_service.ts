@@ -76,7 +76,7 @@ export class ZUserService {
   }
 
   public async exists(opt: { email: string }|{ user_id: number }): Promise<boolean> {
-    const user = await this.find(opt) 
+    const user = await this.find(opt)
     return user !== undefined
   }
 
