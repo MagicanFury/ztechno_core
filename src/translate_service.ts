@@ -164,10 +164,6 @@ export class ZTranslateService {
   }
 
   private insertLocalCache(key: string, lang: string, data: TranslateData): void {
-    if (this.localCache[lang].hasOwnProperty(key)) {
-      // console.warn(`Translations already cached!`, { key, lang, data})
-      return
-    }
     this.localCache[lang][key] = data
   }
 
