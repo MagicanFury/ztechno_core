@@ -214,7 +214,7 @@ export class ZTranslateService {
   }
 
   private fetchAll(): Promise<dbTranslationRow[]> {
-    return this.sql.query<dbTranslationRow[]>(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
+    return this.sql.query<dbTranslationRow>(`SELECT \`key\`, \`lang\`, \`value\`, \`verified\`, \`created_at\` FROM translations`)
   }
 }
 
