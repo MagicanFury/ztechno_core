@@ -20,7 +20,7 @@ export class ZSqlService {
     return this.databaseName
   }
 
-  constructor(options: mysql.PoolConfig) {
+  constructor(private options: mysql.PoolConfig & { dateStringTimezone?: string }) {
     this.databaseName = options.database!
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
     this.pool.on('connection', (connection: mysql.Connection) => {
@@ -56,9 +56,29 @@ export class ZSqlService {
     })
   }
 
+  public async exec(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}>
+  public async exec<T=any>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<T>
+  public async exec<T>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}|T[]> {
+    const rows = await this.query<T>(opt.query, opt.params)
+    if (!Array.isArray(rows)) {
+      return rows
+    }
+    if (!this.options.dateStringTimezone) {
+      return rows
+    }
+    return rows.map(row => {
+      Object.keys(row).map(key => {
+        if (this.isSqlDate(row[key])) {
+          row[key] = new Date(row[key] + this.options.dateStringTimezone)
+        }
+      })
+      return row
+    })
+  }
+
   public async query(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}>
-  public async query<T = any>(sql: string, params?: any[]|{[key: string]: any}): Promise<T>
-  public async query<T>(sql: string, params?: any[]|{[key: string]: any}): Promise<any> {
+  public async query<T = any>(sql: string, params?: any[]|{[key: string]: any}): Promise<T[]>
+  public async query<T>(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}|T[]> {
     try {
       const con: mysql.PoolConnection = await this.getPoolConnection()
       try {
@@ -88,5 +108,12 @@ export class ZSqlService {
     return query.replace(/\:(\w+)/g, (txt: any, key: any) => {
       return (values.hasOwnProperty(key)) ? con.escape(values[key]) : txt
     })
+  }
+
+  private isSqlDate(str: string) {
+    if (str && typeof str === 'string' && str[4] === '-' && str[7] === '-' && str[10] === ' ' && str[13] === ':' && str[16] === ':') {
+      return true
+    }
+    return false
   }
 }

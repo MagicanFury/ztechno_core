@@ -83,13 +83,13 @@ export class ZUserService {
   public async find(opt: { email: string }|{ user_id: number }): Promise<ZUser|undefined>
   public async find(opt: any): Promise<ZUser|undefined> {
     if (opt.email !== undefined) {
-      const rows = await this.sqlService.query<ZUser[]>(`
+      const rows = await this.sqlService.query<ZUser>(`
         SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
         WHERE email=?`, [opt.email]
       )
       return rows[0]
     } else if (opt.user_id !== undefined) {
-      const rows = await this.sqlService.query<ZUser[]>(`
+      const rows = await this.sqlService.query<ZUser>(`
         SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
         WHERE user_id=?`, [opt.user_id]
       )
@@ -104,10 +104,10 @@ export class ZUserService {
     if (!opt.session && (!opt.email && !opt.pass)) {
       return { authenticated: false }
     }
-    const res = await ((opt.session) ? this.sqlService.query<ZUser[]>(`
+    const res = await ((opt.session) ? this.sqlService.query<ZUser>(`
       SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE session=?`, [opt.session]
-    ) : this.sqlService.query<ZUser[]>(`
+    ) : this.sqlService.query<ZUser>(`
       SELECT user_id, email, session, role, admin, updated_at, created_at FROM \`${this.tableName}\`
       WHERE email=? AND pass=?`, [opt.email, this.hashPass(opt as any)]
     ))
