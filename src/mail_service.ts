@@ -8,8 +8,16 @@ export class ZMailService {
 
   constructor(private opt: MailServiceOptions) {}
 
-  public send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<MailResponse>
-  public send(mailOpts: MailOptions): Promise<MailResponse> {
+  protected async allowSend(mailOpts: MailOptions) {
+    return true
+  }
+
+  public async send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<MailResponse|undefined>
+  public async send(mailOpts: MailOptions): Promise<MailResponse|undefined> {
+    const allow = await this.allowSend(mailOpts)
+    if (!allow) {
+      return
+    }
     const mailTransporter = nodemailer.createTransport({
       service: 'gmail',
       auth: this.opt.auth,
@@ -25,7 +33,7 @@ export class ZMailService {
       priority: mailOpts.priority,
     }
 
-    return new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       mailTransporter.sendMail(mailDetails, function (err: any, data: MailResponse) {
         return err ? reject(err) : resolve(data)
       })
