@@ -20,7 +20,7 @@ export class ZMailService {
       subject: mailOpts.subject,
       text: mailOpts.body || undefined,
       html: mailOpts.html || undefined,
-      dkim: mailOpts.dkim,
+      dkim: this.opt.dkim ?? mailOpts.dkim,
       priority: mailOpts.priority,
     }
 
