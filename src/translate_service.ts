@@ -1,5 +1,6 @@
 import { ZSqlService } from './sql_service'
 import { TranslateData, ZDom, ZNode, ZNodeText, dbTranslationRow } from '.'
+import { ATranslateLang, TranslateServiceOptions } from './typings/translate_types'
 const DomParser = require('dom-parser')
 const translate = require('translate')
 
@@ -12,13 +13,13 @@ export class ZTranslateService {
 
   public surpressErrors: boolean = true
 
-  public getLanguages() { return this.opt.languages || ['en', 'nl'] }
-  public getSourceLang() { return this.opt.sourceLang || 'en' }
-  public getDefaultLang() { return this.opt.defaultLang || 'en' }
+  public getLanguages(): ATranslateLang[] { return this.opt.languages || [{lang: 'en', text: 'English'}, {lang: 'nl', text: 'Nederlands'}] }
+  public getSourceLang(): string { return this.opt.sourceLang || 'en' }
+  public getDefaultLang(): string { return this.opt.defaultLang || 'en' }
 
-  constructor(private opt: { sqlService: ZSqlService, googleApiKey: string, languages?: string[], defaultLang?: string, sourceLang?: string }) {
+  constructor(private opt: TranslateServiceOptions) {
     translate.key = opt.googleApiKey
-    this.getLanguages().map((lang) => (this.localCache[lang] = {}))
+    this.getLanguages().map((lang) => (this.localCache[lang.lang] = {}))
     setInterval(() => this.clearLocalCache(), 1000 * 60 * 60) // Every Hour
   }
 
@@ -37,11 +38,8 @@ export class ZTranslateService {
   public getLang(cookies: { [key: string]: string }) {
     const defaultLang = this.getDefaultLang()
     const langKey = (cookies.lang || defaultLang).toLowerCase()
-    const langs = this.getLanguages()
-    if (!langs.includes(langKey)) {
-      return defaultLang
-    }
-    return langKey
+    const foundLang = this.getLanguages().find(l => l.lang === langKey)
+    return (foundLang === undefined) ? defaultLang : foundLang.lang
   }
 
   public async translateText(langOrReq: string | any, text: string): Promise<string> {
