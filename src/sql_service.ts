@@ -76,6 +76,11 @@ export class ZSqlService {
     })
   }
 
+  public async fetch<T=any>(opt: { Query: string, Params: {[key: string]: any} }) {
+    const items = await this.query<T>(opt.Query, opt.Params)
+    return items
+  }
+
   public async query(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}>
   public async query<T = any>(sql: string, params?: any[]|{[key: string]: any}): Promise<T[]>
   public async query<T>(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}|T[]> {

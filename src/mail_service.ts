@@ -4,6 +4,8 @@ import nodemailer from 'nodemailer'
 
 export class ZMailService {
 
+  protected get sql() { return this.opt.sqlService }
+
   constructor(private opt: MailServiceOptions) {}
 
   public send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<MailResponse>
