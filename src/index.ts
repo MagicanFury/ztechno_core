@@ -7,7 +7,7 @@ import { ZUserService } from './user_service';
 
 export { HashStruct } from './typings/crypto_types'
 
-export { MailOptions, MailOptionsBase, MailOptionsHtml, MailOptionsText, MailServiceOptions } from './typings/mail_types'
+export { MailOptions, MailOptionsBase, MailOptionsHtml, MailOptionsText, MailServiceOptions, MailResponse } from './typings/mail_types'
 export { TranslateData, ZDom, ZNode, ZNodeText, dbTranslationRow } from './typings/translate_types'
 export { ZRequiredUserColumns, ZUser, ZUserCredentials, ZUserSession  } from './typings/user_types'
 

@@ -1,5 +1,4 @@
-import SMTPTransport from "nodemailer/lib/smtp-transport"
-import { MailOptions, MailOptionsHtml, MailOptionsText, MailServiceOptions } from "./typings/mail_types"
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions } from "./typings/mail_types"
 
 import nodemailer from 'nodemailer'
 
@@ -7,8 +6,8 @@ export class ZMailService {
 
   constructor(private opt: MailServiceOptions) {}
 
-  public send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<SMTPTransport.SentMessageInfo>
-  public send(mailOpts: MailOptions): Promise<SMTPTransport.SentMessageInfo> {
+  public send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<MailResponse>
+  public send(mailOpts: MailOptions): Promise<MailResponse> {
     const mailTransporter = nodemailer.createTransport({
       service: 'gmail',
       auth: this.opt.auth,
@@ -25,7 +24,7 @@ export class ZMailService {
     }
 
     return new Promise((resolve, reject) => {
-      mailTransporter.sendMail(mailDetails, function (err: any, data: SMTPTransport.SentMessageInfo) {
+      mailTransporter.sendMail(mailDetails, function (err: any, data: MailResponse) {
         return err ? reject(err) : resolve(data)
       })
     })
