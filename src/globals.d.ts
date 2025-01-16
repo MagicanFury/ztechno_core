@@ -8,6 +8,7 @@ declare global {
 	namespace Express {
 		interface Request {
 			user?: userTypes.ZUser
+      cookies?: {[key: string]: any}
 		}
 	}
 }

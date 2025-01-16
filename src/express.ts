@@ -1,11 +1,10 @@
-import * as express from 'express'
 
 export function middleware() {
-  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  return async (req: Express.Request, res: Express.Response, next: any) => {
     if (req.cookies === undefined) {
       throw new Error(`Module 'cookie-parser' isn't initialized. Please use app.use(cookieParser())`)
     }
-    if (req.cookies?.session === undefined) {
+    if (req.cookies.session === undefined) {
       return next()
     }
     const auth = await userService.auth({ session: req.cookies?.session })

@@ -5,6 +5,8 @@ import { ZSqlService } from './sql_service'
 import { ZTranslateService } from './translate_service'
 import { ZUserService } from './user_service'
 
+export {middleware} from './express'
+
 export { HashStruct } from './typings/crypto_types'
 export { MailOptions, MailOptionsBase, MailOptionsHtml, MailOptionsText, MailServiceOptions, MailResponse } from './typings/mail_types'
 export { TranslateData, ZDom, ZNode, ZNodeText, dbTranslationRow } from './typings/translate_types'
