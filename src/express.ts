@@ -8,9 +8,9 @@ export function middleware() {
     if (req.cookies?.session === undefined) {
       return next()
     }
-    const auth = await userService.auth({session: req.cookies?.session})
+    const auth = await userService.auth({ session: req.cookies?.session })
     req.user = auth.user
     // TODO: Implement assertAdmin or something like that
     next()
-  } 
+  }
 }
