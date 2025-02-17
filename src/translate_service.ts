@@ -1,10 +1,8 @@
 import { ZSqlService } from './sql_service'
-import { TranslateData, ZDom, ZNode, ZNodeText, dbTranslationRow } from '.'
+import { TranslateData, dbTranslationRow } from './index'
 import { ATranslateLang, TranslateServiceOptions } from './typings/translate_types'
-const DomParser = require('dom-parser')
-const translate = require('translate')
-
-const htmlParser = new DomParser()
+import { parseFromString, Node } from 'dom-parser'
+import translate from 'translate'
 
 export class ZTranslateService {
 
@@ -13,12 +11,13 @@ export class ZTranslateService {
 
   public surpressErrors: boolean = true
 
-  public getLanguages(): ATranslateLang[] { return this.opt.languages || [{lang: 'en', text: 'English'}, {lang: 'nl', text: 'Nederlands'}] }
+  public getLanguages(): ATranslateLang[] { return this.opt.languages || [{ lang: 'en', text: 'English' }, { lang: 'nl', text: 'Nederlands' }] }
   public getSourceLang(): string { return this.opt.sourceLang || 'en' }
   public getDefaultLang(): string { return this.opt.defaultLang || 'en' }
 
   constructor(private opt: TranslateServiceOptions) {
     translate.key = opt.googleApiKey
+    this.surpressErrors = opt.surpressErrors ?? true
     this.getLanguages().map((lang) => (this.localCache[lang.lang] = {}))
     setInterval(() => this.clearLocalCache(), 1000 * 60 * 60) // Every Hour
   }
@@ -48,6 +47,7 @@ export class ZTranslateService {
     if (text.length === 1) {
       return text
     }
+
     let replaceCount = 0
     while (text.includes('&#')) {
       const codeIndexStart = text.indexOf('&#')
@@ -86,17 +86,17 @@ export class ZTranslateService {
     return result
   }
 
-  public async translateHtml(html: string, cookies: { lang: string, [key: string]: string }): Promise<string> {
+  public async translateHtml(html: string, cookies: { lang: string } & { [key: string]: string }): Promise<string> {
     const lang = this.getLang(cookies)
     const srcLang = this.getSourceLang()
-    const dom: ZDom = htmlParser.parseFromString(html)
-    const htmlNodes: ZNode[] = dom.getElementsByTagName('html')
-    const mainNodes: ZNode[] = dom.getElementsByTagName('main')
+    const dom = parseFromString(html)
+    const htmlNodes: Node[] = dom.getElementsByTagName('html')
+    const mainNodes: Node[] = dom.getElementsByTagName('main')
     const isView = htmlNodes.length === 0
-    const domNode: ZNode = isView ? mainNodes[0] : htmlNodes[0]
+    const domNode: Node = isView ? mainNodes[0] : htmlNodes[0]
 
     if (lang !== srcLang) {
-      const node: ZNode = isView ? domNode : domNode.getElementsByTagName('body')[0]
+      const node: Node = isView ? domNode : domNode.getElementsByTagName('body')[0]
       const promises: Promise<any>[] = []
       this.translateHtmlRec(lang, node, promises)
       await Promise.all(promises)
@@ -105,12 +105,13 @@ export class ZTranslateService {
     return output.startsWith(`<!DOCTYPE html>`) ? output : `<!DOCTYPE html>\r\n${output}`
   }
 
-  private translateHtmlRec(lang: string, node: ZNode, promises: Promise<any>[], skipTranslate: boolean = false): void {
+  private translateHtmlRec(lang: string, node: Node, promises: Promise<any>[], skipTranslate: boolean = false): void {
+    if (this.opt.verbose) this.opt.verbose(node.nodeName, node)
     if (node.getAttribute('notranslate') != null) {
       skipTranslate = true
     }
     if (node.nodeName === '#text') {
-      const nodeText: ZNodeText = node
+      const nodeText: Node = node
       const text = nodeText.text.replace(/[\r|\n|\r\n]+/g, ' ').replace(/\s\s+/g, ' ')
       const value = text.trim()
       const meta = {
@@ -128,6 +129,7 @@ export class ZTranslateService {
           })
           .catch((err) => {
             node.text = text
+            if (this.opt.log) this.opt.log(err, node)
             if (!this.surpressErrors) {
               throw err // TODO: Find out if surpressing is better
             }

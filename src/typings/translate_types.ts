@@ -1,18 +1,19 @@
-import { ZSqlService } from "../sql_service";
+import { ZSqlService } from "../sql_service"
+// import {} from "dom-parser"
 
-export type ZDom = {} & ZNode
-export type ZNode = {
+export type Dom =  {} & Node
+export type Node = {
   getAttribute: (attr: string) => string;
-  getElementsByTagName: (tag: string) => ZNode[];
-  getElementsByClassName: (cls: string) => ZNode[];
-  getElementById: (id: string) => ZNode;
-  getElementsByName: (name: string) => ZNode[];
+  getElementsByTagName: (tag: string) => Node[];
+  getElementsByClassName: (cls: string) => Node[];
+  getElementById: (id: string) => Node;
+  getElementsByName: (name: string) => Node[];
   nodeType: string;
   nodeName: string;
-  childNodes: ZNode[];
-  firstChild: ZNode;
-  lastChild: ZNode;
-  parentNode: ZNode;
+  childNodes: Node[];
+  firstChild: Node;
+  lastChild: Node;
+  parentNode: Node;
   attributes: any[];
   innerHTML: string;
   outerHTML: string;
@@ -22,7 +23,7 @@ export type ZNode = {
 }
 export type ZNodeText = {
   text: string;
-} & ZNode
+} & Node
 export type TranslateData = { value: string; meta?: { prefix: string; suffix: string } }
 export type dbTranslationRow = { lang: string; key: string; value: string }
 
@@ -34,4 +35,7 @@ export type TranslateServiceOptions = {
   languages?: ATranslateLang[]
   defaultLang?: string
   sourceLang?: string
+  surpressErrors?: boolean
+  log?: (data, context) => any
+  verbose?: (data, context) => any
 }
