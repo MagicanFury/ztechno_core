@@ -144,12 +144,7 @@
     },
     "use-isnan": true,
     "variable-name": {
-      "options": [
-        "allow-leading-underscore",
-        "ban-keywords",
-        "check-format",
-        "allow-pascal-case"
-      ]
+      "options": []
     }
   }
 }
