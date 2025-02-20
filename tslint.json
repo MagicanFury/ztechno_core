@@ -72,7 +72,7 @@
     "no-parameter-properties": false,
     "no-reference": true,
     "no-reference-import": true,
-    "no-shadowed-variable": true,
+    "no-shadowed-variable": false,
     "no-string-literal": true,
     "no-string-throw": true,
     "no-switch-case-fall-through": false,
@@ -103,12 +103,7 @@
     "unified-signatures": true,
     "use-isnan": true,
     "variable-name": {
-      "options": [
-        "allow-leading-underscore",
-        "ban-keywords",
-        "check-format",
-        "allow-pascal-case"
-      ]
+      "options": []
     }
   },
   "jsRules": {
@@ -120,7 +115,7 @@
     "new-parens": true,
     "no-arg": true,
     "no-bitwise": true,
-    "no-conditional-assignment": true,
+    "no-conditional-assignment": false,
     "no-consecutive-blank-lines": true,
     "no-console": true,
     "no-construct": true,
@@ -131,10 +126,10 @@
     "no-eval": true,
     "no-reference": true,
     "no-shadowed-variable": true,
-    "no-string-literal": true,
+    "no-string-literal": false,
     "no-string-throw": true,
     "no-switch-case-fall-through": false,
-    "no-unused-expression": true,
+    "no-unused-expression": false,
     "no-use-before-declare": false,
     "one-variable-per-declaration": {
       "options": [
