@@ -1,7 +1,7 @@
 import { ZSqlService } from './sql_service'
 import { TranslateData, dbTranslationRow } from './index'
 import { ATranslateLang, TranslateServiceOptions } from './typings/translate_types'
-import { parseFromString, Node } from 'dom-parser'
+import { parseFromString, Node } from './vendor/dom-parser/dist'
 import translate from 'translate'
 
 export class ZTranslateService {
