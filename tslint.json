@@ -103,7 +103,15 @@
     "unified-signatures": true,
     "use-isnan": true,
     "variable-name": {
-      "options": []
+      "options": [
+        "ban-keywords",
+        "check-format",
+        "allow-pascal-case",
+        "allow-leading-underscore",
+        "allow-snake-case",
+        "allow-trailing-underscore",
+        "require-const-for-all-caps"
+      ]
     }
   },
   "jsRules": {
@@ -144,7 +152,15 @@
     },
     "use-isnan": true,
     "variable-name": {
-      "options": []
+      "options": [
+        "ban-keywords",
+        "check-format",
+        "allow-pascal-case",
+        "allow-leading-underscore",
+        "allow-snake-case",
+        "allow-trailing-underscore",
+        "require-const-for-all-caps"
+      ]
     }
   }
 }
