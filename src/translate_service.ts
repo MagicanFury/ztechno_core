@@ -52,14 +52,14 @@ export class ZTranslateService {
     while (text.includes('&#')) {
       const codeIndexStart = text.indexOf('&#')
       const first = text.substring(codeIndexStart)
-      const codeLength = first.indexOf('') + 1
+      const codeLength = first.indexOf(';') + 1
       const code = first.substring(0, codeLength)
       if (this.codes[code] === undefined) {
         throw new Error(`Cant recognize character code="${code}"\n for text=${text}\n\n`)
         // return text
       }
-      text = text.substring(0, codeIndexStart) + this.codes[text] + text.substring(codeIndexStart + codeLength)
-      // text = text.replace(code, codes[text])
+      text = text.substring(0, codeIndexStart) + this.codes[code] + text.substring(codeIndexStart + codeLength)
+      // text = text.replace(code, codes[code])
       if (replaceCount++ > 1000) {
         throw new Error(`Replace Count > 1000!!! character code="${code}"\n for text=${text}\n\n`)
         // return text
