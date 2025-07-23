@@ -14,7 +14,7 @@ export class ZUserService {
     this.salt = sqlService.database
   }
 
-  private async checkTableExists() {
+  protected async checkTableExists() {
     const res = await this.sqlService.query<any[]>(`
       SELECT ENGINE, VERSION, CREATE_TIME FROM information_schema.tables
       WHERE table_schema = '${this.sqlService.database}' AND table_name = '${this.tableName}'
@@ -30,7 +30,7 @@ export class ZUserService {
     return res.length > 0
   }
 
-  private async createTable() {
+  protected async createTable() {
     await this.sqlService.query(`
       CREATE TABLE \`${this.tableName}\` (
         \`user_id\` int(10) unsigned NOT NULL AUTO_INCREMENT,

@@ -7,6 +7,7 @@ test('My Greeter', () => {
       user: 'ztechnologiesint@gmail.com',
       pass: '',
     },
+    sqlService: null as any, // Mock or provide a real SQL service if needed
   });
   mailer.send({ recipient: 'ztechnologiesint@gmail.com', subject: 'Unit Test', body: 'Hello!' }).then(res => {
     expect(res).toBe('success');
