@@ -1,13 +1,12 @@
-import { ZSqlService } from './sql_service'
-import { TranslateData, dbTranslationRow } from './index'
-import { ATranslateLang, TranslateServiceOptions, TranslateError, HtmlEntityError, ApiTranslationError, DatabaseError, ValidationError } from './typings/translate_types'
+import { ZSQLService } from './sql_service'
+import { TranslateData, dbTranslationRow, ATranslateLang, TranslateServiceOptions, TranslateError, HtmlEntityError, ApiTranslationError, DatabaseError, ValidationError } from './typings'
 import { parseFromString, Node } from './vendor/dom-parser/dist'
 import translate from 'translate'
 
 export class ZTranslateService {
 
   private localCache: { [lang: string]: { [key: string]: TranslateData } } = {}
-  private get sql(): ZSqlService { return this.opt.sqlService }
+  private get sql(): ZSQLService { return this.opt.sqlService }
 
   public surpressErrors: boolean = true
   private maxRetries: number = 3

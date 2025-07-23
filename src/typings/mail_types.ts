@@ -1,5 +1,5 @@
 import SMTPTransport from "nodemailer/lib/smtp-transport"
-import { ZSqlService } from "../sql_service";
+import { ZSQLService } from "../sql_service";
 interface OptionalOptions {
   cacheDir?: string | false | undefined;    /** optional location for cached messages. If not set then caching is not used. */
   cacheTreshold?: number | undefined;       /** optional size in bytes, if message is larger than this treshold it gets cached to disk (assuming cacheDir is set and writable). Defaults to 131072 (128 kB). */
@@ -13,8 +13,24 @@ interface SingleDKIMKeyOptions extends OptionalOptions {
   privateKey: string | { key: string; passphrase: string }; /** is the private key for the selector in PEM format */
 }
 export type MailResponse = SMTPTransport.SentMessageInfo
-export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService?: ZSqlService }
+export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService: ZSQLService, hashSalt?: string }
 export type MailOptionsBase = {recipient: string, subject: string, from?: string, priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions}
 export type MailOptionsText = MailOptionsBase & {body: string}
 export type MailOptionsHtml = MailOptionsBase & {html: string}
 export type MailOptions = MailOptionsBase & {body?: string, html?: string}
+
+export type ZMailSendOptTemplate = MailOptionsBase & {template: 'template.html', inject: {title: string, content: string} & {[key: string]: string|number}}
+export type ZMailSendOptAll = MailOptionsBase & {
+  body: string
+  html: string
+  template: 'template.html'|string
+  inject: {title: string, content: string} & {[key: string]: string|number}
+}
+export type ZMailBlacklist = {
+  email: string
+  hash?: string
+  is_blacklisted: 0|1
+  updated_at: string
+  created_at: String
+}
+export type ZMailBlacklistSearch = Pick<ZMailBlacklist, 'email'|'is_blacklisted'>

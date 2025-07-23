@@ -1,13 +1,13 @@
 import express = require('express')
-import userTypes = require('./typings/user_types')
-import userService = require('./user_service')
+import { ZUser } from './typings'
+import { ZUserService } from './user_service'
 export {}
 
 declare global {
-  var userService: userService.ZUserService
+  var userService: ZUserService
 	namespace Express {
 		interface Request {
-			user?: userTypes.ZUser
+			user?: ZUser
       cookies?: {[key: string]: any}
 		}
 	}

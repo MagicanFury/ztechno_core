@@ -1,4 +1,4 @@
-import { ZSqlService } from "../sql_service"
+import { ZSQLService } from "../sql_service"
 // import {} from "dom-parser"
 
 export type Dom =  {} & Node
@@ -30,7 +30,7 @@ export type dbTranslationRow = { lang: string; key: string; value: string }
 export type ATranslateLang = {lang: string, text: string}
 
 export type TranslateServiceOptions = {
-  sqlService: ZSqlService
+  sqlService: ZSQLService
   googleApiKey: string
   languages?: ATranslateLang[]
   defaultLang?: string

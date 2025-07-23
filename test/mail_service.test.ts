@@ -1,7 +1,7 @@
-import { ZMailService } from '../src/mail_service';
+import { ZMailService } from '../src';
 
 test('My Greeter', () => {
-  const mailer = ZMailService.get({
+  const mailer = new ZMailService({
     mailSender: 'info@ztechno.nl',
     auth: {
       user: 'ztechnologiesint@gmail.com',

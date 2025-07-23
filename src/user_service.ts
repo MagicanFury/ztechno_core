@@ -1,14 +1,14 @@
 import { ZCryptoService } from "./crypto_service"
-import { ZSqlService } from "./sql_service"
-import { ZRequiredUserColumns, ZUser, ZUserSession, ZUserCredentials } from "./typings/user_types"
+import { ZSQLService } from "./sql_service"
+import { ZRequiredUserColumns, ZUser, ZUserSession, ZUserCredentials } from "./typings"
 
 export class ZUserService {
 
   private tableName: string
-  private sqlService: ZSqlService
+  private sqlService: ZSQLService
   private salt: string
 
-  constructor({ sqlService, tableName }: { sqlService: ZSqlService, tableName?: string }) {
+  constructor({ sqlService, tableName }: { sqlService: ZSQLService, tableName?: string }) {
     this.sqlService = sqlService
     this.tableName = tableName || 'users'
     this.salt = sqlService.database

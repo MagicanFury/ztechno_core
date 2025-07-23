@@ -1,14 +1,23 @@
+// Core services
 import { ZEngineBase } from './engine_base'
 import { ZCryptoService } from './crypto_service'
 import { ZMailService } from './mail_service'
-import { ZSqlService } from './sql_service'
+import { ZSQLService } from './sql_service'
 import { ZTranslateService } from './translate_service'
 import { ZUserService } from './user_service'
 
-export {middleware} from './express'
+// Express middleware
+export { middleware } from './express'
 
-export { HashStruct } from './typings/crypto_types'
-export { MailOptions, MailOptionsBase, MailOptionsHtml, MailOptionsText, MailServiceOptions, MailResponse } from './typings/mail_types'
-export { TranslateData, Dom as ZDom, Node as ZNode, ZNodeText, dbTranslationRow } from './typings/translate_types'
-export { ZRequiredUserColumns, ZUser, ZUserCredentials, ZUserSession } from './typings/user_types'
-export { ZCryptoService, ZMailService, ZSqlService, ZTranslateService, ZUserService, ZEngineBase }
+// Re-export all types from typings barrel
+export * from './typings'
+
+// Re-export all services
+export { 
+  ZEngineBase,
+  ZCryptoService, 
+  ZMailService, 
+  ZSQLService as ZSqlService, 
+  ZTranslateService, 
+  ZUserService 
+}

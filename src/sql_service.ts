@@ -4,7 +4,7 @@ type ZEventType = 'err'|'log'
 type ZOnErrorCallback = (err: mysql.MysqlError) => any
 type ZOnLogCallback = (log: string) => any
 
-export class ZSqlService {
+export class ZSQLService {
 
   private pool: mysql.Pool
   private defaultPoolconfig: mysql.PoolConfig = {
