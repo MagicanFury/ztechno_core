@@ -19,11 +19,11 @@ export type MailOptionsText = MailOptionsBase & {body: string}
 export type MailOptionsHtml = MailOptionsBase & {html: string}
 export type MailOptions = MailOptionsBase & {body?: string, html?: string}
 
-export type ZMailSendOptTemplate = MailOptionsBase & {template: 'template.html', inject: {title: string, content: string} & {[key: string]: string|number}}
+export type ZMailSendOptTemplate = MailOptionsBase & {template: 'C:/example/template.html'|string, inject: {title: string, content: string} & {[key: string]: string|number}}
 export type ZMailSendOptAll = MailOptionsBase & {
   body: string
   html: string
-  template: 'template.html'|string
+  template: 'C:/example/template.html'|string
   inject: {title: string, content: string} & {[key: string]: string|number}
 }
 export type ZMailBlacklist = {
