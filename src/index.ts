@@ -17,7 +17,7 @@ export {
   ZEngineBase,
   ZCryptoService, 
   ZMailService, 
-  ZSQLService as ZSqlService, 
+  ZSQLService, 
   ZTranslateService, 
   ZUserService 
 }
