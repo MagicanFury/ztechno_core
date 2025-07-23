@@ -56,7 +56,6 @@ export class ZMailBlacklistOrm extends ZOrm {
     return res.affectedRows !== 0
   }
 
-
   public override async createTable(): Promise<void> {
     await this.sqlService.query(/*SQL*/`
       CREATE TABLE \`${this.alias}\` (
@@ -65,7 +64,8 @@ export class ZMailBlacklistOrm extends ZOrm {
         \`is_blacklisted\` tinyint(1) NOT NULL DEFAULT 0,
         \`updated_at\` datetime NOT NULL DEFAULT current_timestamp(),
         \`created_at\` datetime NOT NULL DEFAULT current_timestamp(),
-        PRIMARY KEY (\`email\`)
+        PRIMARY KEY (\`email\`),
+        KEY \`is_blacklisted\` (\`is_blacklisted\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `)
   }

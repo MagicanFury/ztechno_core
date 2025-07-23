@@ -7,17 +7,48 @@ export class ZMailService {
 
   protected get sql() { return this.opt.sqlService }
 
-  protected orm: ZMailBlacklistOrm
+  protected blacklistOrm: ZMailBlacklistOrm
 
+  /**
+   * Creates a new ZMailService instance
+   * @param opt - Configuration options for the mail service including authentication, sender email, and SQL service
+   */
   constructor(private opt: MailServiceOptions) {
-    this.orm = new ZMailBlacklistOrm(opt)
+    this.blacklistOrm = new ZMailBlacklistOrm(opt)
   }
 
+  /**
+   * Checks if an email is allowed to be sent by verifying it's not blacklisted
+   * @param mailOpts - Mail options containing the recipient email to check
+   * @returns Promise that resolves to true if email is allowed, false if blacklisted
+   * @protected
+   */
   protected async allowSend(mailOpts: MailOptions) {
+    const blacklistEntry = await this.blacklistOrm.findOne({ email: mailOpts.recipient, is_blacklisted: 1 })
+    if (blacklistEntry) {
+      console.warn(`Email to ${mailOpts.recipient} is blacklisted!`)
+      return false
+    }
     return true
   }
 
-  public async send(mailOpts: MailOptionsText|MailOptionsHtml): Promise<MailResponse|undefined>
+  /**
+   * Sends an email with text content
+   * @param mailOpts - Mail options with text body
+   * @returns Promise that resolves to mail response or undefined if sending is not allowed
+   */
+  public async send(mailOpts: MailOptionsText): Promise<MailResponse|undefined>
+  /**
+   * Sends an email with HTML content
+   * @param mailOpts - Mail options with HTML body
+   * @returns Promise that resolves to mail response or undefined if sending is not allowed
+   */
+  public async send(mailOpts: MailOptionsHtml): Promise<MailResponse|undefined>
+  /**
+   * Sends an email with either text or HTML content
+   * @param mailOpts - Mail options containing recipient, subject, and body/html content
+   * @returns Promise that resolves to mail response or undefined if sending is not allowed
+   */
   public async send(mailOpts: MailOptions): Promise<MailResponse|undefined> {
     const allow = await this.allowSend(mailOpts)
     if (!allow) {
@@ -45,12 +76,42 @@ export class ZMailService {
     })
   }
 
+  /**
+   * Sends an advanced email with text content, supporting templates and variable injection
+   * @param mailOpts - Mail options with text body
+   * @returns Promise that resolves to mail response
+   */
   public async sendAdvanced(mailOpts: MailOptionsText): Promise<any>
+  /**
+   * Sends an advanced email with HTML content, supporting templates and variable injection
+   * @param mailOpts - Mail options with HTML body
+   * @returns Promise that resolves to mail response
+   */
   public async sendAdvanced(mailOpts: MailOptionsHtml): Promise<any>
+  /**
+   * Sends an advanced email using a template file, supporting variable injection
+   * @param mailOpts - Mail options with template path and injection variables
+   * @returns Promise that resolves to mail response
+   */
   public async sendAdvanced(mailOpts: ZMailSendOptTemplate): Promise<any>
+  /**
+   * Sends an advanced email with enhanced features including template loading and variable injection.
+   * Automatically generates unsubscribe hash and injects common variables like email and hashToUnsubscribe.
+   * @param mailOpts - Mail options that can include template path, injection variables, and standard mail fields
+   * @returns Promise that resolves to mail response from the underlying send method
+   * @example
+   * ```typescript
+   * await mailService.sendAdvanced({
+   *   recipient: 'user@example.com',
+   *   subject: 'Welcome!',
+   *   template: './templates/welcome.html',
+   *   inject: { name: 'John', company: 'ACME Corp' }
+   * });
+   * ```
+   */
   public async sendAdvanced(mailOpts: MailOptionsText|MailOptionsHtml|ZMailSendOptTemplate): Promise<any> {
     const opts = mailOpts as ZMailSendOptAll
-    const hashToUnsubscribe = await this.orm.genEmailUnsubscribeHash({ email: mailOpts.recipient })
+    const hashToUnsubscribe = await this.blacklistOrm.genEmailUnsubscribeHash({ email: mailOpts.recipient })
     if (opts.template !== undefined) {
       opts.html = await this.fetchTemplate(opts.template)
     }
@@ -62,10 +123,29 @@ export class ZMailService {
     return await this.send(opts)
   }
 
+  /**
+   * Fetches the content of a template file from the filesystem
+   * @param template - Path to the template file to read
+   * @returns Promise that resolves to the template content as a string
+   * @throws Will throw an error if the file cannot be read
+   * @private
+   */
   private async fetchTemplate(template: string) {
     return await fs.readFile(template, { encoding: 'utf-8' })
   }
 
+  /**
+   * Injects variables into a body string by replacing placeholder tokens
+   * @param body - The string content where variables should be injected
+   * @param inject - Object containing key-value pairs where keys are variable names and values are replacement content
+   * @returns Promise that resolves to the body string with all variables injected
+   * @example
+   * ```typescript
+   * const result = await inject('Hello :name from :company', { name: 'John', company: 'ACME' });
+   * // Returns: 'Hello John from ACME'
+   * ```
+   * @private
+   */
   private async inject(body: string, inject?: { [key: string]: string|number }): Promise<string> {
     Object.keys(inject ?? {}).map(variableName => {
       const key = `:${variableName}`
