@@ -98,7 +98,7 @@
     },
     "typedef": false,
     "typeof-compare": false,
-    "unified-signatures": true,
+    "unified-signatures": false,
     "use-isnan": true,
     "variable-name": {
       "options": [

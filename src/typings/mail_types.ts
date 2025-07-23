@@ -31,6 +31,6 @@ export type ZMailBlacklist = {
   hash?: string
   is_blacklisted: 0|1
   updated_at: string
-  created_at: String
+  created_at: string
 }
 export type ZMailBlacklistSearch = Pick<ZMailBlacklist, 'email'|'is_blacklisted'>

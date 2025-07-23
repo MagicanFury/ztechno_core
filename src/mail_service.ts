@@ -26,7 +26,6 @@ export class ZMailService {
   protected async allowSend(mailOpts: MailOptions) {
     const blacklistEntry = await this.blacklistOrm.findOne({ email: mailOpts.recipient, is_blacklisted: 1 })
     if (blacklistEntry) {
-      console.warn(`Email to ${mailOpts.recipient} is blacklisted!`)
       return false
     }
     return true
