@@ -9,10 +9,11 @@ import { ZRequiredUserColumns, ZRequiredUserColumnsExtended, ZUser, ZUserCore, Z
  */
 export class ZUserService<TUser extends ZUserCore = ZUser, TUserCreate extends ZRequiredUserColumns = ZRequiredUserColumns> {
 
-  private tableName: string
-  private sqlService: ZSQLService
-  private salt: string
+  protected tableName: string
+  protected sqlService: ZSQLService
   protected tableConfig: ZUserTableConfig
+  
+  private salt: string
 
   /**
    * Creates a new ZUserService instance

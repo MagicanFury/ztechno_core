@@ -509,6 +509,11 @@ export class ZTranslateService {
         return
       }
       
+      // Skip style tags
+      if (node.nodeName === 'style') {
+        return
+      }
+      
       if (node.nodeName === '#text') {
         const nodeText: Node = node
         const text = nodeText.text.replace(/[\r|\n|\r\n]+/g, ' ').replace(/\s\s+/g, ' ')
