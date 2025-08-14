@@ -714,13 +714,16 @@ export class ZTranslateService {
         skipTranslate = true
       }
       
-      // Skip HTML comments
       if (node.nodeName === '#comment') {
+        // Skip HTML comments
         return
       }
-      
-      // Skip style tags
+      if (node.nodeName === 'script') {
+        // Skip script tags
+        return
+      }
       if (node.nodeName === 'style') {
+        // Skip style tags
         return
       }
       
