@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer'
+import fss from 'fs'
 import fs from 'fs/promises'
+import path from 'path'
 import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailSendOptAll, ZMailSendOptTemplate } from "./typings"
 import { ZMailBlacklistOrm } from './orm/mail_blacklist_orm'
 
@@ -130,7 +132,14 @@ export class ZMailService {
    * @private
    */
   private async fetchTemplate(template: string) {
-    return await fs.readFile(template, { encoding: 'utf-8' })
+    if (fss.existsSync(template)) {
+      return await fs.readFile(template, { encoding: 'utf-8' })
+    }
+    const altPath = path.join(process.cwd(), template)
+    if (fss.existsSync(altPath)) {
+      return await fs.readFile(altPath, { encoding: 'utf-8' })
+    }
+    throw new Error(`Template file not found: ${template} altPath also not found: ${altPath}`)
   }
 
   /**
