@@ -155,7 +155,10 @@ export class ZMailService {
    * @private
    */
   private async inject(body: string, inject?: { [key: string]: string|number }): Promise<string> {
-    Object.keys(inject ?? {}).map(variableName => {
+    // Sort variable names by length (longest first) to prevent partial matches
+    const sortedKeys = Object.keys(inject ?? {}).sort((a, b) => b.length - a.length)
+    
+    sortedKeys.forEach(variableName => {
       const key = `:${variableName}`
       while (body.indexOf(key) !== -1) {
         body = body.replace(key, inject![variableName].toString())
