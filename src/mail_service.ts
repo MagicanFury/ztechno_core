@@ -21,6 +21,21 @@ export class ZMailService {
   }
 
   /**
+   * Fetches the content of a template file from the filesystem
+   * @param template - Path to the template file to read
+   * @returns Promise that resolves to the template content as a string
+   * @throws Will throw an error if the file cannot be read
+   * @private
+   */
+  private async fetchTemplate(template: string) {
+    const filepath = path.join(this.opt.dirTemplate, template)
+    if (fss.existsSync(filepath)) {
+      return await fs.readFile(filepath, { encoding: 'utf-8' })
+    }
+    throw new Error(`Template file not found: ${filepath}`)
+  }
+
+  /**
    * Checks if an email is allowed to be sent by verifying it's not blacklisted
    * @param mailOpts - Mail options containing the recipient email to check
    * @returns Promise that resolves to true if email is allowed, false if blacklisted
@@ -123,21 +138,6 @@ export class ZMailService {
       opts[key] = await this.inject(opts[key], Object.assign(baseInject, opts.inject))
     }
     return await this.send(opts)
-  }
-
-  /**
-   * Fetches the content of a template file from the filesystem
-   * @param template - Path to the template file to read
-   * @returns Promise that resolves to the template content as a string
-   * @throws Will throw an error if the file cannot be read
-   * @private
-   */
-  private async fetchTemplate(template: string) {
-    const filepath = path.join(this.opt.dirTemplate, template)
-    if (fss.existsSync(filepath)) {
-      return await fs.readFile(template, { encoding: 'utf-8' })
-    }
-    throw new Error(`Template file not found: ${template}`)
   }
 
   /**
