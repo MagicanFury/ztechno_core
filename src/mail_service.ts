@@ -17,6 +17,7 @@ export class ZMailService {
    */
   constructor(private opt: MailServiceOptions) {
     this.blacklistOrm = new ZMailBlacklistOrm(opt)
+    this.opt.dirTemplate = path.isAbsolute(this.opt.dirTemplate || '') ? this.opt.dirTemplate : path.join(process.cwd(), this.opt.dirTemplate || '')
   }
 
   /**
@@ -132,14 +133,11 @@ export class ZMailService {
    * @private
    */
   private async fetchTemplate(template: string) {
-    if (fss.existsSync(template)) {
+    const filepath = path.join(this.opt.dirTemplate, template)
+    if (fss.existsSync(filepath)) {
       return await fs.readFile(template, { encoding: 'utf-8' })
     }
-    const altPath = path.join(process.cwd(), template)
-    if (fss.existsSync(altPath)) {
-      return await fs.readFile(altPath, { encoding: 'utf-8' })
-    }
-    throw new Error(`Template file not found: ${template} altPath also not found: ${altPath}`)
+    throw new Error(`Template file not found: ${template}`)
   }
 
   /**

@@ -13,7 +13,7 @@ interface SingleDKIMKeyOptions extends OptionalOptions {
   privateKey: string | { key: string; passphrase: string }; /** is the private key for the selector in PEM format */
 }
 export type MailResponse = SMTPTransport.SentMessageInfo
-export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService: ZSQLService, hashSalt?: string }
+export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService: ZSQLService, hashSalt?: string, dirTemplate?: string }
 export type MailOptionsBase = {recipient: string, subject: string, from?: string, priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions}
 export type MailOptionsText = MailOptionsBase & {body: string}
 export type MailOptionsHtml = MailOptionsBase & {html: string}
