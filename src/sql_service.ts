@@ -121,4 +121,29 @@ export class ZSQLService {
     }
     return false
   }
+
+  public async changeDatabase(newDatabase: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.pool.end((err) => {
+        if (err) {
+          reject(err)
+          return
+        }
+        this.databaseName = newDatabase
+        const newOptions = { ...this.options, database: newDatabase }
+        this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, newOptions))
+        
+        this.pool.on('connection', (connection: mysql.Connection) => {
+          connection.on('error', (err) => {
+            this.triggerEvent('err', err)
+          })
+          connection.on('close', (err) => {
+            this.triggerEvent('err', err)
+          })
+        })
+        
+        resolve()
+      })
+    })
+  }
 }
