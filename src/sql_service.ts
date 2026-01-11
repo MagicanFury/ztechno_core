@@ -4,6 +4,11 @@ type ZEventType = 'err'|'log'
 type ZOnErrorCallback = (err: mysql.MysqlError) => any
 type ZOnLogCallback = (log: string) => any
 
+export type ZSQLOptions = mysql.PoolConfig & {
+  dateStringTimezone?: string
+  parseBooleans?: boolean
+}
+
 export class ZSQLService {
 
   private pool: mysql.Pool
@@ -20,7 +25,7 @@ export class ZSQLService {
     return this.databaseName
   }
 
-  constructor(private options: mysql.PoolConfig & { dateStringTimezone?: string }) {
+  constructor(private options: ZSQLOptions) {
     this.databaseName = options.database!
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
     this.pool.on('connection', (connection: mysql.Connection) => {
@@ -59,17 +64,32 @@ export class ZSQLService {
   public async exec(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}>
   public async exec<T=any>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<T>
   public async exec<T>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}|T[]> {
-    const rows = await this.query<T>(opt.query, opt.params)
-    if (!Array.isArray(rows)) {
-      return rows
+    const { results, fields } = await this.queryWithFields<T>(opt.query, opt.params)
+    if (!Array.isArray(results)) {
+      return results
     }
-    if (!this.options.dateStringTimezone) {
-      return rows
+    if (!this.options.dateStringTimezone && !this.options.parseBooleans) {
+      return results
     }
-    return rows.map(row => {
+
+    // Build a set of column names that are TINYINT(1) for boolean conversion
+    const booleanColumns = new Set<string>()
+    if (this.options.parseBooleans && fields) {
+      fields.forEach(field => {
+        // Check if column is TINYINT(1) - type 1 is TINY, length 1 means TINYINT(1)
+        if (field.type === 1 && field.length === 1) {
+          booleanColumns.add(field.name)
+        }
+      })
+    }
+
+    return results.map(row => {
       Object.keys(row).map(key => {
-        if (this.isSqlDate(row[key])) {
+        if (this.options.dateStringTimezone && this.isSqlDate(row[key])) {
           row[key] = new Date(row[key] + this.options.dateStringTimezone)
+        }
+        if (this.options.parseBooleans && booleanColumns.has(key) && (row[key] === 0 || row[key] === 1)) {
+          row[key] = row[key] === 1
         }
       })
       return row
@@ -93,6 +113,41 @@ export class ZSQLService {
           } else {
             sql = this.formatQueryParams(con, sql, params)
             con.query(sql, (err, result) => (err) ? reject(err) : resolve(result))
+          }
+        })
+        con.release()
+        return output
+      } catch (err) {
+        con.release()
+        throw err
+      }
+    } catch (err) {
+      throw err
+    }
+  }
+
+  private async queryWithFields<T>(sql: string, params?: any[]|{[key: string]: any}): Promise<{ results: T[], fields: mysql.FieldInfo[] }> {
+    try {
+      const con: mysql.PoolConnection = await this.getPoolConnection()
+      try {
+        const output = await new Promise<{ results: T[], fields: mysql.FieldInfo[] }>((resolve, reject) => {
+          if (Array.isArray(params)) {
+            con.query(sql, params, (err, results, fields) => {
+              if (err) {
+                reject(err)
+              } else {
+                resolve({ results, fields })
+              }
+            })
+          } else {
+            sql = this.formatQueryParams(con, sql, params)
+            con.query(sql, (err, results, fields) => {
+              if (err) {
+                reject(err)
+              } else {
+                resolve({ results, fields })
+              }
+            })
           }
         })
         con.release()
