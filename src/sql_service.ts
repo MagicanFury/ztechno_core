@@ -82,7 +82,7 @@ export class ZSQLService {
    * @returns Promise resolving to query results with type conversions applied
    */
   public async exec(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}>
-  public async exec<T=any>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<T>
+  public async exec<T=any>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<T[]>
   public async exec<T>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}|T[]> {
     const { results, fields } = await this.queryWithFields<T>(opt.query, opt.params)
     if (!Array.isArray(results)) {
