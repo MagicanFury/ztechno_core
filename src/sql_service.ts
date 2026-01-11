@@ -118,7 +118,7 @@ export class ZSQLService {
 
   /**
    * Legacy method to execute a SQL query. Uses uppercase property names for backwards compatibility.
-   * Does not apply date or boolean conversions. Consider using exec() instead.
+   * Applies date and boolean conversions if configured. Consider using exec() directly for new code.
    * @template T - The expected result type
    * @param opt - Query options
    * @param opt.Query - The SQL query string to execute
@@ -126,8 +126,7 @@ export class ZSQLService {
    * @returns Promise resolving to query results
    */
   public async fetch<T=any>(opt: { Query: string, Params: {[key: string]: any} }) {
-    const items = await this.query<T>(opt.Query, opt.Params)
-    return items
+    return await this.exec<T>({ query: opt.Query, params: opt.Params })
   }
 
   /**
