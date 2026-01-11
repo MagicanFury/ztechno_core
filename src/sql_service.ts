@@ -25,6 +25,10 @@ export class ZSQLService {
     return this.databaseName
   }
 
+  /**
+   * Creates a new ZSQLService instance with a MySQL connection pool.
+   * @param options - MySQL pool configuration options including custom dateStringTimezone and parseBooleans settings
+   */
   constructor(private options: ZSQLOptions) {
     this.databaseName = options.database!
     this.pool = mysql.createPool(Object.assign({}, this.defaultPoolconfig, options))
@@ -40,6 +44,12 @@ export class ZSQLService {
     })
   }
 
+  /**
+   * Registers an event listener for database errors or logs.
+   * @param eventName - The event type to listen for ('err' or 'log')
+   * @param listener - The callback function to execute when the event occurs
+   * @throws Error if the event name is not supported
+   */
   public on(eventName: 'err', listener: ZOnErrorCallback): void
   public on(eventName: 'log', listener: ZOnLogCallback): void
   public on(eventName: ZEventType, listener: ZOnErrorCallback|ZOnLogCallback): void {
@@ -61,6 +71,16 @@ export class ZSQLService {
     })
   }
 
+  /**
+   * Executes a SQL query with automatic type conversion for dates and booleans.
+   * Converts TINYINT(1) columns to booleans if parseBooleans option is enabled.
+   * Converts date strings to Date objects if dateStringTimezone option is set.
+   * @template T - The expected result type
+   * @param opt - Query options containing the SQL query string and optional parameters
+   * @param opt.query - The SQL query string to execute
+   * @param opt.params - Optional query parameters (array for positional, object for named parameters)
+   * @returns Promise resolving to query results with type conversions applied
+   */
   public async exec(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}>
   public async exec<T=any>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<T>
   public async exec<T>(opt: { query: string, params?: any[]|{[key: string]: any} }): Promise<{insertId: number, affectedRows: number}|T[]> {
@@ -96,11 +116,28 @@ export class ZSQLService {
     })
   }
 
+  /**
+   * Legacy method to execute a SQL query. Uses uppercase property names for backwards compatibility.
+   * Does not apply date or boolean conversions. Consider using exec() instead.
+   * @template T - The expected result type
+   * @param opt - Query options
+   * @param opt.Query - The SQL query string to execute
+   * @param opt.Params - Named parameters for the query
+   * @returns Promise resolving to query results
+   */
   public async fetch<T=any>(opt: { Query: string, Params: {[key: string]: any} }) {
     const items = await this.query<T>(opt.Query, opt.Params)
     return items
   }
 
+  /**
+   * Executes a SQL query without type conversions.
+   * Supports both positional (array) and named (object) parameters.
+   * @template T - The expected result type
+   * @param sql - The SQL query string to execute
+   * @param params - Optional query parameters (array for positional with ?, object for named with :key)
+   * @returns Promise resolving to query results or insert/update metadata
+   */
   public async query(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}>
   public async query<T = any>(sql: string, params?: any[]|{[key: string]: any}): Promise<T[]>
   public async query<T>(sql: string, params?: any[]|{[key: string]: any}): Promise<{insertId: number, affectedRows: number}|T[]> {
@@ -177,6 +214,13 @@ export class ZSQLService {
     return false
   }
 
+  /**
+   * Changes the active database by closing the current connection pool and creating a new one.
+   * All active connections will be gracefully closed before switching.
+   * @param newDatabase - The name of the database to switch to
+   * @returns Promise that resolves when the database has been changed successfully
+   * @throws Error if the pool cannot be closed or new pool cannot be created
+   */
   public async changeDatabase(newDatabase: string): Promise<void> {
     return new Promise((resolve, reject) => {
       this.pool.end((err) => {
