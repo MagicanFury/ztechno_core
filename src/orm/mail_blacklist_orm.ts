@@ -43,7 +43,7 @@ export class ZMailBlacklistOrm extends ZOrm {
     const whereClause = (whereKeys.length) ? `WHERE ${whereKeys.map(key => `${key}=:${key}`).join(' AND ')}` : ''
     const limit = opt?.limit ? `LIMIT ${opt.limit}` : ''
 
-    return await this.sqlService.exec<ZMailBlacklist[]>({
+    return await this.sqlService.exec<ZMailBlacklist>({
       query: (/*SQL*/`SELECT * FROM \`${this.alias}\` ${whereClause} ${limit}`),
       params: conditions
     })
