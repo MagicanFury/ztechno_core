@@ -6,12 +6,13 @@ import { ZCryptoService } from '../crypto_service'
  * Update a remote Docker container via the V2 Secure API
  * @param opt.packagename - The package/image name
  * @param opt.port - The port number
+ * @param opt.volumes - Optional array of volume mappings
  * @param opt.c - Optional logger
  * @returns Promise resolving to success status and message
  */
 export function updateDocker(opt: {packagename: string, port: string|number, volumes?: string[], c?: {log: any, error: any}}): Promise<{success: boolean, message?: string, err?: string}> {
   return new Promise((resolve, reject) => {
-    const { packagename, port, c } = opt  
+    const { packagename, port, volumes, c } = opt  
     const secretKey = process.env.ZTECHNO_API_SECRET
 
     if (!secretKey) {
@@ -21,15 +22,16 @@ export function updateDocker(opt: {packagename: string, port: string|number, vol
 
     // Generate timestamp and signature
     const timestamp = Date.now().toString()
-    const payload = timestamp + packagename + port + ''
+    const volumesString = volumes && volumes.length > 0 ? volumes.join(',') : ''
+    const payload = timestamp + packagename + port + volumesString
     const signature = crypto.createHmac('sha256', secretKey).update(payload).digest('hex')
 
     c?.log("\x1b[32m" + `[Updating Remote Docker via V2 Secure API]`)
 
     // Build query parameters
     let queryParams = `port=${port}`
-    if (opt.volumes && opt.volumes.length > 0) {
-      queryParams += `&volumes=${opt.volumes.join(',')}`
+    if (volumesString) {
+      queryParams += `&volumes=${volumesString}`
     }
 
     const options = {
