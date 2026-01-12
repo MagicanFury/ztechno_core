@@ -157,12 +157,12 @@ export interface DatabaseSchema {
 export interface SchemaComparison {
   addedTables: string[]
   removedTables: string[]
-  modifiedTables: Array<{
+  modifiedTables: {
     tableName: string
     addedColumns: string[]
     removedColumns: string[]
     modifiedColumns: string[]
-  }>
+  }[]
   addedViews: string[]
   removedViews: string[]
   modifiedViews: string[]
@@ -214,6 +214,6 @@ export interface SchemaImportResult {
   proceduresCreated: string[]
   triggersCreated: string[]
   eventsCreated: string[]
-  errors: Array<{ object: string; error: string }>
+  errors: { object: string; error: string }[]
   warnings: string[]
 }

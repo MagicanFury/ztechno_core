@@ -609,7 +609,7 @@ export class MySQLSchemaImporter {
       // Apply schema with target database context
       const result = await this.applySchema(sourceSchema, {
         ...options,
-        targetDatabase: targetDatabase
+        targetDatabase
       })
       
       return result

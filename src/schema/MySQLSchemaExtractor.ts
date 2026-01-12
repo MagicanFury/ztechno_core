@@ -338,7 +338,7 @@ export class MySQLSchemaExtractor {
     for (const func of functions) {
       try {
         const createStmt = await this.sql.query<any>(`SHOW CREATE FUNCTION \`${func.name}\``)
-        let fullDefinition = createStmt[0]?.['Create Function'] || func.definition
+        const fullDefinition = createStmt[0]?.['Create Function'] || func.definition
         
         // Note: MySQL doesn't support IF NOT EXISTS for functions, but we can document this
         // The importer will handle DROP IF EXISTS before CREATE
