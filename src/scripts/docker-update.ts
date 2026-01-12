@@ -7,9 +7,10 @@ import { ZCryptoService } from '../crypto_service'
  * Update a remote Docker container via the V2 Secure API
  * @param  packagename - The package/image name
  * @param port - The port number
+ * @param console - Optional logger
  * @returns Promise resolving to success status and message
  */
-export function updateDocker(packagename: string, port: string|number): Promise<{success: boolean, message?: string, err?: string}> {
+export function updateDocker(packagename: string, port: string|number, console?: {log: any, error: any}): Promise<{success: boolean, message?: string, err?: string}> {
   return new Promise((resolve, reject) => {
     const secretKey = process.env.ZTECHNO_API_SECRET
 
@@ -23,7 +24,7 @@ export function updateDocker(packagename: string, port: string|number): Promise<
     const payload = timestamp + packagename + port + ''
     const signature = crypto.createHmac('sha256', secretKey).update(payload).digest('hex')
 
-    console.log("\x1b[32m" + `[Updating Remote Docker via V2 Secure API]`)
+    console?.log("\x1b[32m" + `[Updating Remote Docker via V2 Secure API]`)
 
     const options = {
       hostname: ZCryptoService.decrypt({ iv: '00d1df14932d0e6b5d064cceb037f586', encryptedData: '05b9d826539fe2cbdf7d7ecccfe57635' }),
@@ -44,25 +45,25 @@ export function updateDocker(packagename: string, port: string|number): Promise<
       res.on('end', () => {
         try {
           const response = JSON.parse(data)
-          console.log("\x1b[36mStatus Code:", res.statusCode, "\x1b[0m")
-          console.log("\x1b[34mResponse:", JSON.stringify(response, null, 2), "\x1b[0m")
+          console?.log("\x1b[36mStatus Code:", res.statusCode, "\x1b[0m")
+          console?.log("\x1b[34mResponse:", JSON.stringify(response, null, 2), "\x1b[0m")
           if (response.success) {
-            console.log("\x1b[32m✓", response.message, "\x1b[0m")
+            console?.log("\x1b[32m✓", response.message, "\x1b[0m")
             resolve(response)
           } else {
-            console.log("\x1b[31m✗ Error:", response.err, "\x1b[0m")
+            console?.log("\x1b[31m✗ Error:", response.err, "\x1b[0m")
             resolve(response)
           }
         } catch (err) {
-          console.log("\x1b[31mFailed to parse response:", data, "\x1b[0m")
-          console.error(err)
+          console?.log("\x1b[31mFailed to parse response:", data, "\x1b[0m")
+          console?.error(err)
           reject(err)
         }
       })
     })
 
     req.on('error', (err) => {
-      console.log("\x1b[31m✗ Request failed:", err.message, "\x1b[0m")
+      console?.log("\x1b[31m✗ Request failed:", err.message, "\x1b[0m")
       reject(err)
     })
 
@@ -78,7 +79,7 @@ if (require.main === module) {
     process.exit(1)
   }
   const [packagename, port] = arg.split(':')
-  updateDocker(packagename, port).catch(() => process.exit(1))
+  updateDocker(packagename, port, console).catch(() => process.exit(1))
 }
 
 module.exports = { updateDocker }
