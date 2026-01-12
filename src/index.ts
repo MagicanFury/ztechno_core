@@ -15,6 +15,9 @@ export * from './typings'
 // Re-export specific scripts
 export * from './scripts/docker-update'
 
+// Re-export all schema-related modules
+export * from './schema'
+
 // Re-export all services
 export { 
   ZEngineBase,
