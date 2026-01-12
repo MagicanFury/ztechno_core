@@ -85,11 +85,11 @@ export async function getPrimaryKeyColumns(tableName: string): Promise<string[]>
 /**
  * Get foreign key relationships for a table
  */
-export async function getForeignKeyRelationships(tableName: string): Promise<Array<{
+export async function getForeignKeyRelationships(tableName: string): Promise<{
   column: string
   referencedTable: string
   referencedColumn: string
-}>> {
+}[]> {
   const table = await getTableDefinition(tableName)
   if (!table) return []
 
@@ -118,16 +118,16 @@ export async function generateCreateTableStatement(tableName: string): Promise<s
  */
 export async function compareOrmWithDatabase(
   ormTableName: string,
-  ormColumns: Array<{ name: string; type: string; nullable?: boolean }>
+  ormColumns: { name: string; type: string; nullable?: boolean }[]
 ): Promise<{
   matches: boolean
-  columnDifferences: Array<{
+  columnDifferences: {
     column: string
     ormType: string
     dbType: string
     ormNullable?: boolean
     dbNullable: boolean
-  }>
+  }[]
   missingInDb: string[]
   missingInOrm: string[]
 }> {
@@ -139,13 +139,13 @@ export async function compareOrmWithDatabase(
   const dbColumns = new Map(table.columns.map(c => [c.name, c]))
   const ormColumnMap = new Map(ormColumns.map(c => [c.name, c]))
 
-  const columnDifferences: Array<{
+  const columnDifferences: {
     column: string
     ormType: string
     dbType: string
     ormNullable?: boolean
     dbNullable: boolean
-  }> = []
+  }[] = []
 
   const missingInDb: string[] = []
   const missingInOrm: string[] = []
@@ -260,21 +260,21 @@ export async function findTablesWithColumn(columnName: string): Promise<string[]
 /**
  * Get table relationships (foreign key graph)
  */
-export async function getTableRelationships(): Promise<Array<{
+export async function getTableRelationships(): Promise<{
   fromTable: string
   toTable: string
   onColumn: string
   referencedColumn: string
-}>> {
+}[]> {
   const extractor = new MySQLSchemaExtractor(globalThis.sql)
   const tables = await extractor.extractTables()
 
-  const relationships: Array<{
+  const relationships: {
     fromTable: string
     toTable: string
     onColumn: string
     referencedColumn: string
-  }> = []
+  }[] = []
 
   for (const table of tables) {
     for (const fk of table.foreignKeys) {
