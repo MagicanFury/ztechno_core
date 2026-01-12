@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import http from 'http'
 import crypto from 'crypto'
 import { ZCryptoService } from '../crypto_service'
