@@ -12,7 +12,6 @@
   ],
   "scripts": {
     "test": "jest --config jestconfig.json",
-    "encrypt": "tsx ./src/scripts/encrypt.ts",
     "build": "tsc",
     "format": "prettier --write \"lib/**/*.ts\" \"lib/**/*.js\"",
     "lint": "tslint -p tsconfig.json",

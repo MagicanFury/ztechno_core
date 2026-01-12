@@ -12,6 +12,9 @@ export { middleware } from './express'
 // Re-export all types from typings barrel
 export * from './typings'
 
+// Re-export specific scripts
+export * from './scripts/docker-update'
+
 // Re-export all services
 export { 
   ZEngineBase,
