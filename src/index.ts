@@ -19,5 +19,5 @@ export {
   ZMailService, 
   ZSQLService, 
   ZTranslateService, 
-  ZUserService 
+  ZUserService
 }
