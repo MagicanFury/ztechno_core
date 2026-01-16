@@ -19,7 +19,7 @@ export class ZCryptoService {
  
   public static decrypt(data: HashStruct): string
   public static decrypt(encrypted: string): string
-  public static decrypt(data: HashStruct | string): string {
+  public static decrypt(data: HashStruct|string): string {
     if (typeof data === 'string') {
       const encryptedText = Buffer.from(data, 'hex')
       const decipher = crypto.createDecipheriv(algorithm, key as crypto.CipherKey, iv as crypto.BinaryLike)
@@ -35,9 +35,11 @@ export class ZCryptoService {
     return decrypted.toString()
   }
 
-  public static decryptJSON(data: HashStruct) {
+  public static decryptJSON<T=any>(data: HashStruct): T
+  public static decryptJSON<T=any>(data: string): T
+  public static decryptJSON<T=any>(data: HashStruct|string): T {
     try {
-      const decrypted = ZCryptoService.decrypt(data)
+      const decrypted = ZCryptoService.decrypt(data as any)
       return JSON.parse(decrypted)
     } catch (err) {
       throw new Error(`Couldn't decrypt JSON ${JSON.stringify(data)}`)
