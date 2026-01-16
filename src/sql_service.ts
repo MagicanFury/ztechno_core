@@ -130,7 +130,7 @@ export class ZSQLService {
   public async fetch<T=any>(query: string, params: {[key:string]: any}|any[]) : Promise<T[]>
   public async fetch<T>(opt: { Query: string, Params: {[key: string]: any}|any[] }|string, params?: {[key:string]: any}|any[]): Promise<T[]> {
     if (typeof opt === 'string') {
-      return await this.exec<T>({ query: opt, params: params })
+      return await this.exec<T>({ query: opt, params })
     }
     return await this.exec<T>({ query: opt.Query, params: opt.Params })
   }
