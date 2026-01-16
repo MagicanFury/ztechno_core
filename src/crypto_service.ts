@@ -11,18 +11,27 @@ const iv = Buffer.from([0, 209, 223, 20, 147, 45, 14, 107, 93, 6, 76, 206, 176, 
 export class ZCryptoService {
 
   public static encrypt(text: string): HashStruct {
-    const cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv)
+    const cipher = crypto.createCipheriv(algorithm, key as crypto.CipherKey, iv as crypto.BinaryLike)
     let encrypted = cipher.update(text)
-    encrypted = Buffer.concat([encrypted, cipher.final()])
+    encrypted = Buffer.concat([encrypted, cipher.final()] as Uint8Array[])
     return { iv: iv.toString('hex'), encryptedData: encrypted.toString('hex') }
   }
-
-  public static decrypt(data: HashStruct) {
+ 
+  public static decrypt(data: HashStruct): string
+  public static decrypt(encrypted: string): string
+  public static decrypt(data: HashStruct | string): string {
+    if (typeof data === 'string') {
+      const encryptedText = Buffer.from(data, 'hex')
+      const decipher = crypto.createDecipheriv(algorithm, key as crypto.CipherKey, iv as crypto.BinaryLike)
+      let decrypted: Buffer = decipher.update(encryptedText as any)
+      decrypted = Buffer.concat([decrypted, decipher.final()] as Uint8Array[])
+      return decrypted.toString()
+    }
     const niv = Buffer.from(data.iv, 'hex')
     const encryptedText = Buffer.from(data.encryptedData, 'hex')
-    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(key), niv)
-    let decrypted = decipher.update(encryptedText)
-    decrypted = Buffer.concat([decrypted, decipher.final()])
+    const decipher = crypto.createDecipheriv(algorithm, key as crypto.CipherKey, niv as crypto.BinaryLike)
+    let decrypted: Buffer = decipher.update(encryptedText as any)
+    decrypted = Buffer.concat([decrypted, decipher.final()] as Uint8Array[])
     return decrypted.toString()
   }
 
