@@ -116,6 +116,7 @@ export class ZSQLService {
     })
   }
 
+
   /**
    * Legacy method to execute a SQL query. Uses uppercase property names for backwards compatibility.
    * Applies date and boolean conversions if configured. Consider using exec() directly for new code.
@@ -125,7 +126,12 @@ export class ZSQLService {
    * @param opt.Params - Named parameters for the query
    * @returns Promise resolving to query results
    */
-  public async fetch<T=any>(opt: { Query: string, Params: {[key: string]: any} }) {
+  public async fetch<T=any>(opt: { Query: string, Params: {[key: string]: any}|any[] }): Promise<T[]>
+  public async fetch<T=any>(query: string, params: {[key:string]: any}|any[]) : Promise<T[]>
+  public async fetch<T>(opt: { Query: string, Params: {[key: string]: any}|any[] }|string, params?: {[key:string]: any}|any[]): Promise<T[]> {
+    if (typeof opt === 'string') {
+      return await this.exec<T>({ query: opt, params: params })
+    }
     return await this.exec<T>({ query: opt.Query, params: opt.Params })
   }
 

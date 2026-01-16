@@ -183,16 +183,22 @@ export class ZUserService<TUser extends ZUserCore = ZUser, TUserCreate extends Z
     const selectColumns = this.getSelectColumns()
     
     if (opt.email !== undefined) {
-      const rows = await this.sqlService.query<TUser>(`
-        SELECT ${selectColumns} FROM \`${this.tableName}\`
-        WHERE email=?`, [opt.email]
-      )
+      const rows = await this.sqlService.fetch<TUser>({
+        Query: (/*SQL*/`
+          SELECT ${selectColumns} FROM \`${this.tableName}\`
+          WHERE email=:email
+        `), 
+        Params: {email: opt.email}
+      })
       return rows[0]
     } else if (opt.user_id !== undefined) {
-      const rows = await this.sqlService.query<TUser>(`
-        SELECT ${selectColumns} FROM \`${this.tableName}\`
-        WHERE user_id=?`, [opt.user_id]
-      )
+      const rows = await this.sqlService.fetch<TUser>({
+        Query: (/*SQL*/`
+          SELECT ${selectColumns} FROM \`${this.tableName}\`
+          WHERE user_id=:user_id
+        `),
+        Params: {user_id: opt.user_id}
+      })
       return rows[0]
     } else {
       throw new Error(`Unexpected Input for ZUserService.find(${JSON.stringify(opt)})`)
@@ -204,16 +210,18 @@ export class ZUserService<TUser extends ZUserCore = ZUser, TUserCreate extends Z
     if (!opt.session && (!opt.email && !opt.pass)) {
       return { authenticated: false }
     }
-    
     const selectColumns = this.getSelectColumns()
-    
-    const res = await ((opt.session) ? this.sqlService.query<TUser>(`
-      SELECT ${selectColumns} FROM \`${this.tableName}\`
-      WHERE session=?`, [opt.session]
-    ) : this.sqlService.query<TUser>(`
-      SELECT ${selectColumns} FROM \`${this.tableName}\`
-      WHERE email=? AND pass=?`, [opt.email, this.hashPass(opt as any)]
-    ))
+    const res = await ((opt.session) ? this.sqlService.fetch<TUser>({
+      Query: (/*SQL*/`
+        SELECT ${selectColumns} FROM \`${this.tableName}\` WHERE session=?
+      `),
+      Params: [opt.session]
+    }) : this.sqlService.fetch<TUser>({
+      Query: (/*SQL*/`
+        SELECT ${selectColumns} FROM \`${this.tableName}\` WHERE email=? AND pass=?
+      `),
+      Params: [opt.email, this.hashPass(opt as any)]
+    }))
     return (res.length === 0) ? { authenticated: false } : { user: res[0], session: res[0].session, authenticated: true }
   }
 
@@ -221,7 +229,7 @@ export class ZUserService<TUser extends ZUserCore = ZUser, TUserCreate extends Z
     const selectColumns = this.getSelectColumns()
     const limit = opt?.limit || 100
     
-    const rows = await this.sqlService.query<TUser>(`
+    const rows = await this.sqlService.fetch<TUser>(`
       SELECT ${selectColumns} FROM \`${this.tableName}\`
       ORDER BY created_at DESC
       LIMIT ?
