@@ -1,5 +1,9 @@
 import SMTPTransport from "nodemailer/lib/smtp-transport"
+import { Attachment } from "nodemailer/lib/mailer"
 import { ZSQLService } from "../sql_service";
+
+export type MailAttachment = Attachment
+
 interface OptionalOptions {
   cacheDir?: string | false | undefined;    /** optional location for cached messages. If not set then caching is not used. */
   cacheTreshold?: number | undefined;       /** optional size in bytes, if message is larger than this treshold it gets cached to disk (assuming cacheDir is set and writable). Defaults to 131072 (128 kB). */
@@ -14,7 +18,7 @@ interface SingleDKIMKeyOptions extends OptionalOptions {
 }
 export type MailResponse = SMTPTransport.SentMessageInfo
 export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService: ZSQLService, hashSalt?: string, dirTemplate?: string }
-export type MailOptionsBase = {recipient: string, subject: string, from?: string, priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions}
+export type MailOptionsBase = {recipient: string, subject: string, from?: string, priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions, attachments?: MailAttachment[]}
 export type MailOptionsText = MailOptionsBase & {body: string}
 export type MailOptionsHtml = MailOptionsBase & {html: string}
 export type MailOptions = MailOptionsBase & {body?: string, html?: string}

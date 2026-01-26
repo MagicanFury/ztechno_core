@@ -82,8 +82,9 @@ export class ZMailService {
       subject: mailOpts.subject,
       text: mailOpts.body || undefined,
       html: mailOpts.html || undefined,
-      dkim: this.opt.dkim ?? mailOpts.dkim,
+      dkim: mailOpts.dkim ?? this.opt.dkim,
       priority: mailOpts.priority,
+      attachments: mailOpts.attachments,
     }
 
     return await new Promise((resolve, reject) => {
