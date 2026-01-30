@@ -19,7 +19,17 @@ export class ZMailService {
   constructor(private opt: MailServiceOptions) {
     this.blacklistOrm = new ZMailBlacklistOrm(opt)
     this.opt.dirTemplate = path.isAbsolute(this.opt.dirTemplate || '') ? this.opt.dirTemplate : path.join(process.cwd(), this.opt.dirTemplate || '')
-    
+  }
+
+  public async updateBlacklist(opt: Pick<ZMailBlacklist, "email"|"is_blacklisted"|'hash'>) {
+    const newItem = await this.blacklistOrm.upsert(opt)
+    const found = this.blacklist.find(item => item.email === opt.email)
+    if (found) {
+      found.is_blacklisted = opt.is_blacklisted
+      return
+    } 
+    this.blacklist.push(newItem)
+    return
   }
   
   /**

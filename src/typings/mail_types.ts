@@ -33,7 +33,7 @@ export type ZMailSendOptAll = MailOptionsBase & {
 export type ZMailBlacklist = {
   email: string
   hash?: string
-  is_blacklisted: 0|1
+  is_blacklisted: 0|1|boolean
   updated_at: string
   created_at: string
 }

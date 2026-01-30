@@ -56,6 +56,15 @@ export class ZMailBlacklistOrm extends ZOrm {
     return res.affectedRows !== 0
   }
 
+  public async upsert(item: Omit<ZMailBlacklist, 'updated_at'|'created_at'>): Promise<ZMailBlacklist> {
+    await this.sqlService.query(`
+      INSERT INTO \`${this.alias}\` (email, hash, is_blacklisted, updated_at, created_at)
+      VALUES (:email, :hash, :is_blacklisted, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE hash=:hash, is_blacklisted=:is_blacklisted, updated_at=NOW()
+    `, item)
+    return item as ZMailBlacklist
+  }
+
   public override async createTable(): Promise<void> {
     await this.sqlService.query(/*SQL*/`
       CREATE TABLE \`${this.alias}\` (
