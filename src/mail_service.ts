@@ -20,6 +20,7 @@ export class ZMailService {
   constructor(private opt: MailServiceOptions) {
     this.blacklistOrm = new ZMailBlacklistOrm(opt)
     this.opt.dirTemplate = path.isAbsolute(this.opt.dirTemplate || '') ? this.opt.dirTemplate : path.join(process.cwd(), this.opt.dirTemplate || '')
+    
   }
   
   /**
@@ -146,7 +147,7 @@ export class ZMailService {
     }
     if (opts.inject !== undefined) {
       const key = opts.html !== undefined ? 'html' : 'body'
-      const baseInject = { email: mailOpts.recipient, hashToUnsubscribe }
+      const baseInject = Object.assign({ email: mailOpts.recipient, hashToUnsubscribe }, this.opt.baseInject ?? {})
       opts[key] = await this.inject(opts[key], Object.assign(baseInject, opts.inject))
     }
     return await this.send(opts)
