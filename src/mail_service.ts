@@ -10,8 +10,7 @@ export class ZMailService {
   protected get sql() { return this.opt.sqlService }
 
   protected blacklistOrm: ZMailBlacklistOrm
-  
-  private blacklist: ZMailBlacklist[] = []
+  protected blacklist: ZMailBlacklist[] = []
 
   /**
    * Creates a new ZMailService instance
@@ -30,7 +29,6 @@ export class ZMailService {
   protected async refreshBlacklist() {
     this.blacklist = await this.blacklistOrm.findAll()
   }
-
 
   /**
    * Fetches the content of a template file from the filesystem
