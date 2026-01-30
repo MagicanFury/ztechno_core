@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer'
 import fss from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
-import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailSendOptAll, ZMailSendOptTemplate } from "./typings"
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailBlacklist, ZMailSendOptAll, ZMailSendOptTemplate } from "./typings"
 import { ZMailBlacklistOrm } from './orm/mail_blacklist_orm'
 
 export class ZMailService {
@@ -10,6 +10,8 @@ export class ZMailService {
   protected get sql() { return this.opt.sqlService }
 
   protected blacklistOrm: ZMailBlacklistOrm
+  
+  private blacklist: ZMailBlacklist[] = []
 
   /**
    * Creates a new ZMailService instance
@@ -19,6 +21,15 @@ export class ZMailService {
     this.blacklistOrm = new ZMailBlacklistOrm(opt)
     this.opt.dirTemplate = path.isAbsolute(this.opt.dirTemplate || '') ? this.opt.dirTemplate : path.join(process.cwd(), this.opt.dirTemplate || '')
   }
+  
+  /**
+   * Refreshes the email blacklist from the database
+   * @returns Promise that resolves when the blacklist has been refreshed
+   */
+  protected async refreshBlacklist() {
+    this.blacklist = await this.blacklistOrm.findAll()
+  }
+
 
   /**
    * Fetches the content of a template file from the filesystem
@@ -165,5 +176,4 @@ export class ZMailService {
     })
     return body
   }
-
 }
