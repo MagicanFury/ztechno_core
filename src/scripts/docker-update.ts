@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import http from 'http'
 import crypto from 'crypto'
+import path from 'path'
+import fs from 'fs'
 import { config, DotenvConfigOutput } from 'dotenv'
 import { ZCryptoService } from '../crypto_service'
 
@@ -112,40 +114,81 @@ export function updateDocker(opt: DockerUpdateOptions): Promise<DockerUpdateResu
 }
 
 /**
- * Parse options from a .env file in the current working directory.
- * Required keys: packagename, port, ZTECHNO_API_SECRET
- * Optional key: volumes (comma-separated)
+ * Read the consumer's package.json from the current working directory.
+ * Returns null if not found or unreadable.
+ */
+function loadPackageJson(): { name?: string; config?: { port?: string | number; volumes?: string }; [key: string]: any } | null {
+  try {
+    const pkgPath = path.join(process.cwd(), 'package.json')
+    if (!fs.existsSync(pkgPath)) return null
+    return JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Auto-detect options from .env and/or package.json in the current working directory.
+ * 
+ * Resolution order for each field:
+ *   1. .env / environment variable
+ *   2. package.json (name → packagename, config.port → port, config.volumes → volumes)
+ * 
+ * Required: packagename, port, ZTECHNO_API_SECRET (env only)
+ * Optional: volumes (comma-separated)
  */
 function loadOptionsFromEnv(): { packagename: string; port: string; volumes?: string[] } {
-  const envPath = process.cwd() + '/.env'
-  console.log(`Loading env from: ${envPath}`)
-
+  // Load .env file
+  const envPath = path.join(process.cwd(), '.env')
   const cfg: DotenvConfigOutput = config({ path: envPath })
-  if (cfg.error) {
+  if (cfg.error && cfg.error.message && !cfg.error.message.includes('ENOENT')) {
     throw cfg.error
   }
 
-  const packagename = cfg.parsed?.packagename || process.env.packagename
-  const port = cfg.parsed?.port || process.env.port
-  const volumes = cfg.parsed?.volumes || process.env.volumes
+  // Load package.json as fallback
+  const pkg = loadPackageJson()
 
-  if (!packagename || !port) {
-    throw new Error('Missing required .env variables: packagename and port')
+  const packagename = cfg.parsed?.packagename || process.env.packagename || pkg?.name
+  const port = cfg.parsed?.port || process.env.port || (pkg?.config?.port != null ? String(pkg.config.port) : undefined)
+  const volumesRaw = cfg.parsed?.volumes || process.env.volumes || pkg?.config?.volumes
+
+  if (pkg) {
+    console.log(`Detected package.json: ${pkg.name || '(unnamed)'}`)
   }
 
-  return { packagename, port, volumes: volumes?.split(',').filter(Boolean) }
+  if (!packagename) {
+    throw new Error('Missing packagename. Set it in .env, environment, or package.json "name".')
+  }
+  if (!port) {
+    throw new Error('Missing port. Set it in .env, environment, or package.json "config.port".')
+  }
+
+  return { packagename, port, volumes: volumesRaw?.split(',').filter(Boolean) }
 }
 
 const USAGE = `
 Usage:
   ztechno-docker-update <packagename>:<port>
-  ztechno-docker-update                         (reads from .env file)
+  ztechno-docker-update                         (auto-detect from .env / package.json)
+
+Auto-detection priority:
+  1. .env file      → packagename, port, volumes, ZTECHNO_API_SECRET
+  2. package.json   → "name" as packagename, "config.port", "config.volumes"
 
 .env file format:
   ZTECHNO_API_SECRET=your_secret
   packagename=my-image
   port=3000
   volumes=/host/path:/container/path   (optional, comma-separated)
+
+package.json format:
+  {
+    "name": "my-image",
+    "config": {
+      "port": 3000,
+      "volumes": "/host/path:/container/path"
+    }
+  }
 `.trim()
 
 // Run if executed directly (node docker-update.js or npx ztechno-docker-update)
