@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from 'path'
 import fs from 'fs'
+import { config as loadDotenv } from 'dotenv'
 import { dockerBuild } from './docker-build'
 import { dockerPush } from './docker-push'
 import { updateDocker } from './docker-update'
@@ -42,6 +43,9 @@ export async function dockerPublish(opt?: {
   port?: string | number
   volumes?: string[]
 }): Promise<void> {
+  // Load .env so ZTECHNO_API_SECRET (and other vars) are available
+  loadDotenv({ path: path.join(process.cwd(), '.env') })
+
   const pkg = loadPackageJson()
   const packagename = opt?.packagename || pkg.name
   const awsAccountId = opt?.awsAccountId || pkg.config?.awsAccountId || process.env.AWS_ACCOUNT_ID
