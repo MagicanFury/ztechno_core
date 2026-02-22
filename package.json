@@ -20,12 +20,6 @@
     "postversion": "git push && git push --tags",
     "update": "npm run build && npm version patch && npm publish"
   },
-  "bin": {
-    "ztechno-docker-update": "lib/scripts/docker-update.js",
-    "ztechno-docker-build": "lib/scripts/docker-build.js",
-    "ztechno-docker-push": "lib/scripts/docker-push.js",
-    "ztechno-docker-publish": "lib/scripts/docker-publish.js"
-  },
   "keywords": [
     "ztechno",
     "core",

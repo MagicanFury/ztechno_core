@@ -12,12 +12,6 @@ export { middleware } from './express'
 // Re-export all types from typings barrel
 export * from './typings'
 
-// Re-export specific scripts
-export * from './scripts/docker-update'
-export * from './scripts/docker-build'
-export * from './scripts/docker-push'
-export * from './scripts/docker-publish'
-
 // Re-export all schema-related modules
 export * from './schema'
 
