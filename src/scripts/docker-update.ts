@@ -4,43 +4,69 @@ import crypto from 'crypto'
 import { config, DotenvConfigOutput } from 'dotenv'
 import { ZCryptoService } from '../crypto_service'
 
+// ANSI color helpers
+const red = (msg: string) => `\x1b[31m${msg}\x1b[0m`
+const green = (msg: string) => `\x1b[32m${msg}\x1b[0m`
+const cyan = (msg: string) => `\x1b[36m${msg}\x1b[0m`
+const blue = (msg: string) => `\x1b[34m${msg}\x1b[0m`
+
+/** Default request timeout in milliseconds (30 seconds) */
+const REQUEST_TIMEOUT_MS = 30_000
+
+export interface DockerUpdateOptions {
+  /** The package/image name */
+  packagename: string
+  /** The port number */
+  port: string | number
+  /** Optional array of volume mappings */
+  volumes?: string[]
+  /** Optional logger (defaults to silent) */
+  c?: { log: (...args: any[]) => void; error: (...args: any[]) => void }
+  /** Request timeout in ms (default: 30000) */
+  timeout?: number
+}
+
+export interface DockerUpdateResult {
+  success: boolean
+  message?: string
+  err?: string
+}
+
 /**
  * Update a remote Docker container via the V2 Secure API
- * @param opt.packagename - The package/image name
- * @param opt.port - The port number
- * @param opt.volumes - Optional array of volume mappings
- * @param opt.c - Optional logger
+ * @param opt - Update options
  * @returns Promise resolving to success status and message
  */
-export function updateDocker(opt: {packagename: string, port: string|number, volumes?: string[], c?: {log: any, error: any}}): Promise<{success: boolean, message?: string, err?: string}> {
+export function updateDocker(opt: DockerUpdateOptions): Promise<DockerUpdateResult> {
   return new Promise((resolve, reject) => {
-    const { packagename, port, volumes, c } = opt  
+    const { packagename, port, volumes, c, timeout = REQUEST_TIMEOUT_MS } = opt
     const secretKey = process.env.ZTECHNO_API_SECRET
 
     if (!secretKey) {
-      c.log("\x1b[31m✗ Error: ZTECHNO_API_SECRET environment variable not set\x1b[0m")
+      c?.log(red('✗ Error: ZTECHNO_API_SECRET environment variable not set'))
       return reject(new Error('ZTECHNO_API_SECRET environment variable not set'))
     }
 
-    // Generate timestamp and signature
+    // Generate timestamp and HMAC signature
     const timestamp = Date.now().toString()
     const volumesString = volumes && volumes.length > 0 ? volumes.join(',') : ''
     const payload = timestamp + packagename + port + volumesString
     const signature = crypto.createHmac('sha256', secretKey).update(payload).digest('hex')
 
-    c?.log("\x1b[32m" + `[Updating Remote Docker via V2 Secure API]`)
+    c?.log(green(`[Updating Remote Docker via V2 Secure API]`))
 
-    // Build query parameters
-    let queryParams = `port=${port}`
+    // Build query parameters with proper encoding
+    const query = new URLSearchParams({ port: String(port) })
     if (volumesString) {
-      queryParams += `&volumes=${volumesString}`
+      query.set('volumes', volumesString)
     }
 
-    const options = {
+    const options: http.RequestOptions = {
       hostname: ZCryptoService.decrypt({ iv: '00d1df14932d0e6b5d064cceb037f586', encryptedData: '05b9d826539fe2cbdf7d7ecccfe57635' }),
       port: 7998,
-      path: `/v2/images/${packagename}/update?${queryParams}`,
+      path: `/v2/images/${encodeURIComponent(packagename)}/update?${query}`,
       method: 'GET',
+      timeout,
       headers: {
         'x-timestamp': timestamp,
         'x-signature': signature
@@ -49,31 +75,35 @@ export function updateDocker(opt: {packagename: string, port: string|number, vol
 
     const req = http.request(options, (res) => {
       let data = ''
-      res.on('data', (chunk) => {
-        data += chunk
-      })
+      res.on('data', (chunk) => { data += chunk })
       res.on('end', () => {
         try {
-          const response = JSON.parse(data)
-          c?.log("\x1b[36mStatus Code:", res.statusCode, "\x1b[0m")
-          c?.log("\x1b[34mResponse:", JSON.stringify(response, null, 2), "\x1b[0m")
+          const response: DockerUpdateResult = JSON.parse(data)
+          c?.log(cyan(`Status Code: ${res.statusCode}`))
+          c?.log(blue(`Response: ${JSON.stringify(response, null, 2)}`))
           if (response.success) {
-            c?.log("\x1b[32m✓", response.message, "\x1b[0m")
-            resolve(response)
+            c?.log(green(`✓ ${response.message}`))
           } else {
-            c?.log("\x1b[31m✗ Error:", response.err, "\x1b[0m")
-            resolve(response)
+            c?.log(red(`✗ Error: ${response.err}`))
           }
+          resolve(response)
         } catch (err) {
-          c?.log("\x1b[31mFailed to parse response:", data, "\x1b[0m")
+          c?.log(red(`Failed to parse response: ${data}`))
           c?.error(err)
           reject(err)
         }
       })
     })
 
+    req.on('timeout', () => {
+      req.destroy()
+      const err = new Error(`Request timed out after ${timeout}ms`)
+      c?.log(red(`✗ ${err.message}`))
+      reject(err)
+    })
+
     req.on('error', (err) => {
-      c?.log("\x1b[31m✗ Request failed:", err.message, "\x1b[0m")
+      c?.log(red(`✗ Request failed: ${err.message}`))
       reject(err)
     })
 
@@ -81,42 +111,77 @@ export function updateDocker(opt: {packagename: string, port: string|number, vol
   })
 }
 
-// Run if executed directly (node docker-update.js or npm run docker-update)
+/**
+ * Parse options from a .env file in the current working directory.
+ * Required keys: packagename, port, ZTECHNO_API_SECRET
+ * Optional key: volumes (comma-separated)
+ */
+function loadOptionsFromEnv(): { packagename: string; port: string; volumes?: string[] } {
+  const envPath = process.cwd() + '/.env'
+  console.log(`Loading env from: ${envPath}`)
+
+  const cfg: DotenvConfigOutput = config({ path: envPath })
+  if (cfg.error) {
+    throw cfg.error
+  }
+
+  const packagename = cfg.parsed?.packagename || process.env.packagename
+  const port = cfg.parsed?.port || process.env.port
+  const volumes = cfg.parsed?.volumes || process.env.volumes
+
+  if (!packagename || !port) {
+    throw new Error('Missing required .env variables: packagename and port')
+  }
+
+  return { packagename, port, volumes: volumes?.split(',').filter(Boolean) }
+}
+
+const USAGE = `
+Usage:
+  ztechno-docker-update <packagename>:<port>
+  ztechno-docker-update                         (reads from .env file)
+
+.env file format:
+  ZTECHNO_API_SECRET=your_secret
+  packagename=my-image
+  port=3000
+  volumes=/host/path:/container/path   (optional, comma-separated)
+`.trim()
+
+// Run if executed directly (node docker-update.js or npx ztechno-docker-update)
 if (require.main === module) {
   const main = async () => {
-    const arg = process.argv.slice(2)[0]
+    const arg = process.argv[2]
 
+    if (arg === '--help' || arg === '-h') {
+      console.log(USAGE)
+      return
+    }
+
+    // No argument: load from .env
     if (arg === undefined) {
-      // Read dotenv variables from .env file in current directory
-      const path = process.cwd() + '/.env'
-      console.log('loading env from path:', path)
-      const cfg: DotenvConfigOutput = config({ path })
-      console.log('cfg', cfg)
-      console.log('process.env', {
-        ZTECHNO_API_SECRET: process.env.ZTECHNO_API_SECRET,
-        packagename: process.env.packagename,
-        port: process.env.port,
-        volumes: process.env.volumes,
-      })
-      if (cfg.error) {
-        throw cfg.error
-      }
-
-      const {packagename, port, volumes} = cfg.parsed
-      await updateDocker({ packagename, port, volumes: volumes?.split(','), c: console }).catch(() => process.exit(1))
+      const { packagename, port, volumes } = loadOptionsFromEnv()
+      await updateDocker({ packagename, port, volumes, c: console })
       return
     }
 
-    if (arg?.includes(':')) {
+    // Argument with colon: packagename:port
+    if (arg.includes(':')) {
       const [packagename, port] = arg.split(':')
-      await updateDocker({ packagename, port, c: console }).catch(() => process.exit(1))
+      if (!packagename || !port) {
+        throw new Error(`Invalid argument "${arg}". Expected format: <packagename>:<port>`)
+      }
+      await updateDocker({ packagename, port, c: console })
       return
     }
 
-    throw new Error("\x1b[31m✗ Usage: node docker-update.js <packagename>:<port>\x1b[0m")
+    console.error(red(`✗ Invalid argument: "${arg}"`))
+    console.log(USAGE)
+    process.exit(1)
   }
+
   main().catch(err => {
-    console.error("\x1b[31m✗ Error:", err.message, "\x1b[0m")
+    console.error(red(`✗ Error: ${err.message}`))
     process.exit(1)
   })
 }
