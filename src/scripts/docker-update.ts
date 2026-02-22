@@ -117,7 +117,7 @@ export function updateDocker(opt: DockerUpdateOptions): Promise<DockerUpdateResu
  * Read the consumer's package.json from the current working directory.
  * Returns null if not found or unreadable.
  */
-function loadPackageJson(): { name?: string; config?: { port?: string | number; volumes?: string }; [key: string]: any } | null {
+function loadPackageJson(): { name?: string; config?: { port?: string | number; volumes?: string | string[] }; [key: string]: any } | null {
   try {
     const pkgPath = path.join(process.cwd(), 'package.json')
     if (!fs.existsSync(pkgPath)) return null
@@ -163,7 +163,15 @@ function loadOptionsFromEnv(): { packagename: string; port: string; volumes?: st
     throw new Error('Missing port. Set it in .env, environment, or package.json "config.port".')
   }
 
-  return { packagename, port, volumes: volumesRaw?.split(',').filter(Boolean) }
+  // Normalize volumes: accept string[] from package.json or comma-separated string from .env
+  let volumes: string[] | undefined
+  if (Array.isArray(volumesRaw)) {
+    volumes = volumesRaw.filter(Boolean)
+  } else if (typeof volumesRaw === 'string') {
+    volumes = volumesRaw.split(',').filter(Boolean)
+  }
+
+  return { packagename, port, volumes }
 }
 
 const USAGE = `
@@ -186,7 +194,7 @@ package.json format:
     "name": "my-image",
     "config": {
       "port": 3000,
-      "volumes": "/host/path:/container/path"
+      "volumes": ["/host/path:/container/path", "/logs:/app/logs"]
     }
   }
 `.trim()
