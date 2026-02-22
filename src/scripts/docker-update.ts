@@ -117,7 +117,7 @@ export function updateDocker(opt: DockerUpdateOptions): Promise<DockerUpdateResu
  * Read the consumer's package.json from the current working directory.
  * Returns null if not found or unreadable.
  */
-function loadPackageJson(): { name?: string; config?: { port?: string | number; volumes?: string | string[] }; [key: string]: any } | null {
+function loadPackageJson(): { name?: string; config?: { port?: string | number; volumes?: string | string[]; awsAccountId?: string }; [key: string]: any } | null {
   try {
     const pkgPath = path.join(process.cwd(), 'package.json')
     if (!fs.existsSync(pkgPath)) return null

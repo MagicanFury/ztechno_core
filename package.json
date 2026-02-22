@@ -21,7 +21,9 @@
     "update": "npm run build && npm version patch && npm publish"
   },
   "bin": {
-    "ztechno-docker-update": "lib/scripts/docker-update.js"
+    "ztechno-docker-update": "lib/scripts/docker-update.js",
+    "ztechno-docker-build": "lib/scripts/docker-build.js",
+    "ztechno-docker-push": "lib/scripts/docker-push.js"
   },
   "keywords": [
     "ztechno",

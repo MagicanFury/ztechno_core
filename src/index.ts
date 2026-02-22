@@ -14,6 +14,8 @@ export * from './typings'
 
 // Re-export specific scripts
 export * from './scripts/docker-update'
+export * from './scripts/docker-build'
+export * from './scripts/docker-push'
 
 // Re-export all schema-related modules
 export * from './schema'
