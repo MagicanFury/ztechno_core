@@ -1,5 +1,7 @@
+#!/usr/bin/env node
 import http from 'http'
 import crypto from 'crypto'
+import { config, DotenvConfigOutput } from 'dotenv'
 import { ZCryptoService } from '../crypto_service'
 
 /**
@@ -81,13 +83,40 @@ export function updateDocker(opt: {packagename: string, port: string|number, vol
 
 // Run if executed directly (node docker-update.js or npm run docker-update)
 if (require.main === module) {
-  const arg = process.argv.slice(2)[0]
-  if (!arg || !arg.includes(':')) {
-    throw new Error("\x1b[31m✗ Usage: node docker-update.js <packagename>:<port>\x1b[0m")
-    // process.exit(1)
-  }
-  const [packagename, port] = arg.split(':')
-  updateDocker({ packagename, port, c: console }).catch(() => process.exit(1))
-}
+  const main = async () => {
+    const arg = process.argv.slice(2)[0]
 
-module.exports = { updateDocker }
+    if (arg === undefined) {
+      // Read dotenv variables from .env file in current directory
+      const path = process.cwd() + '/.env'
+      console.log('loading env from path:', path)
+      const cfg: DotenvConfigOutput = config({ path })
+      console.log('cfg', cfg)
+      console.log('process.env', {
+        ZTECHNO_API_SECRET: process.env.ZTECHNO_API_SECRET,
+        packagename: process.env.packagename,
+        port: process.env.port,
+        volumes: process.env.volumes,
+      })
+      if (cfg.error) {
+        throw cfg.error
+      }
+
+      const {packagename, port, volumes} = cfg.parsed
+      await updateDocker({ packagename, port, volumes: volumes?.split(','), c: console }).catch(() => process.exit(1))
+      return
+    }
+
+    if (arg?.includes(':')) {
+      const [packagename, port] = arg.split(':')
+      await updateDocker({ packagename, port, c: console }).catch(() => process.exit(1))
+      return
+    }
+
+    throw new Error("\x1b[31m✗ Usage: node docker-update.js <packagename>:<port>\x1b[0m")
+  }
+  main().catch(err => {
+    console.error("\x1b[31m✗ Error:", err.message, "\x1b[0m")
+    process.exit(1)
+  })
+}
