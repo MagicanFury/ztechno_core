@@ -1,5 +1,5 @@
 import express = require('express')
-import { ZUser } from './typings'
+import { ZUser } from './all-types'
 import { ZUserService } from './user_service'
 export {}
 

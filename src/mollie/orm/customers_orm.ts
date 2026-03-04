@@ -1,6 +1,6 @@
 import { ZOrm } from "../../orm/orm"
 import { ZSQLService } from "../../sql_service"
-import { ZCustomer } from "../mollie_types"
+import { ZCustomer } from "../types/mollie_types"
 
 export class CustomersOrm extends ZOrm {
 

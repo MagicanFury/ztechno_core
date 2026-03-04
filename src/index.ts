@@ -13,7 +13,7 @@ import { MollieService } from './mollie/services/mollie_service'
 export { middleware } from './express'
 
 // Re-export all types from typings barrel
-export * from './typings'
+export * from './all-types'
 
 // Re-export all schema-related modules
 export * from './schema'
@@ -26,7 +26,7 @@ export {
   ZSQLService, 
   ZTranslateService, 
   ZUserService,
-  
+
   InvoiceService,
   CustomerService,
   MollieService,

@@ -1,7 +1,7 @@
 import { ZOrm } from "./orm"
 import { ZSQLService } from "../sql_service"
 import { ZCryptoService } from "../crypto_service"
-import { ZMailBlacklist, ZMailBlacklistSearch } from "../typings"
+import { ZMailBlacklist, ZMailBlacklistSearch } from "../all-types"
 
 export class ZMailBlacklistOrm extends ZOrm {
 

@@ -1,5 +1,5 @@
 import { ZSQLService } from './sql_service'
-import { TranslateData, dbTranslationRow, ATranslateLang, TranslateServiceOptions, TranslateError, HtmlEntityError, ApiTranslationError, DatabaseError, ValidationError } from './typings'
+import { TranslateData, dbTranslationRow, ATranslateLang, TranslateServiceOptions, TranslateError, HtmlEntityError, ApiTranslationError, DatabaseError, ValidationError } from './all-types'
 import { parseFromString, Node } from './vendor/dom-parser/dist'
 import translate from 'translate'
 

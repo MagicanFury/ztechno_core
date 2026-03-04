@@ -13,8 +13,7 @@ import { ZMailService } from "../../mail_service"
 import { MollieService } from "./mollie_service"
 import { ZSQLService } from "../../sql_service"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
-import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus } from "../mollie_types"
-
+import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus } from "../types/mollie_types"
 
 export type ZPayResolveResult =
   | { action: 'redirect', checkoutUrl: string, invoice: ZInvoice }
@@ -32,14 +31,14 @@ export class InvoiceService {
   private paymentsOrm: InvoicePaymentsOrm
   private subscriptionsOrm: SubscriptionsOrm
   private subscriptionItemsOrm: SubscriptionItemsOrm
-  private payTokenSecret = process.env.PAY_TOKEN_SECRET || process.env.MOLLIE_TEST_KEY || process.env.MOLLIE_LIVE_KEY || ''
+  private payTokenSecret = this.opt.payTokenSecret || ''
   private payTokenLifetimeMs = 60 * 24 * 60 * 60 * 1000 
   private mailService: ZMailService
 
-  private get config() { return this.opt.siteConfig}
+  private get config() { return this.opt.siteConfig }
   private get baseUrl() { return this.opt.siteConfig.company.website }
 
-  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context"> }) {
+  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string }) {
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService })
     this.itemsOrm = new InvoiceItemsOrm({ sqlService: opt.sqlService })
     this.paymentsOrm = new InvoicePaymentsOrm({ sqlService: opt.sqlService })

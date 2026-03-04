@@ -1,6 +1,6 @@
 import { ZOrm } from "../../orm/orm"
 import { ZSQLService } from "../../sql_service"
-import { ZInvoice, ZInvoiceStatus } from "../mollie_types"
+import { ZInvoice, ZInvoiceStatus } from "../types/mollie_types"
 
 export class InvoicesOrm extends ZOrm {
 
