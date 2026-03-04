@@ -1,4 +1,4 @@
-import { ZOrm } from "../../orm/orm"
+import { ZOrm } from "../../core/orm/orm"
 import { ZSQLService } from "../../core/sql_service"
 
 export type ZSubscriptionStatus =

@@ -1,6 +1,6 @@
 import SMTPTransport from "nodemailer/lib/smtp-transport"
 import { Attachment } from "nodemailer/lib/mailer"
-import { ZSQLService } from "../core/sql_service";
+import { ZSQLService } from "../sql_service";
 
 export type MailAttachment = Attachment
 

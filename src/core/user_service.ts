@@ -1,6 +1,6 @@
 import { ZCryptoService } from "./crypto_service"
 import { ZSQLService } from "./sql_service"
-import { ZRequiredUserColumns, ZRequiredUserColumnsExtended, ZUser, ZUserCore, ZUserSession, ZUserCredentials, ZUserTableConfig } from "../all-types"
+import { ZRequiredUserColumns, ZRequiredUserColumnsExtended, ZUser, ZUserCore, ZUserSession, ZUserCredentials, ZUserTableConfig } from "./types/user_types"
 
 /**
  * Generic User Service that can be extended with custom user fields

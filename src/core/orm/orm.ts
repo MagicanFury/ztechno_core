@@ -1,4 +1,4 @@
-import { ZSQLService } from "../core/sql_service"
+import { ZSQLService } from "../sql_service"
 
 export class ZOrm {
 
