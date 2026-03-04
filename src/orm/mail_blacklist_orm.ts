@@ -6,10 +6,9 @@ import { ZMailBlacklist, ZMailBlacklistSearch } from "../typings"
 export class ZMailBlacklistOrm extends ZOrm {
 
   private hashSalt: string
-  private sqlService: ZSQLService
 
-  constructor(opt: { alias?: string, sqlService: ZSQLService, hashSalt?: string }) {
-    super({ alias: opt.alias ?? 'email_blacklist' })
+  constructor(opt: { sqlService: ZSQLService, alias?: string, hashSalt?: string }) {
+    super({ sqlService: opt.sqlService, alias: opt.alias ?? 'email_blacklist' })
     this.sqlService = opt.sqlService
     this.hashSalt = opt.hashSalt ?? 'ZTECHNO'
   }

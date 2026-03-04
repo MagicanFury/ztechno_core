@@ -9,3 +9,6 @@ export * from './translate_types'
 
 // User types
 export * from './user_types'
+
+// Site config types
+export * from './site_config'

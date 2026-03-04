@@ -5,6 +5,9 @@ import { ZMailService } from './mail_service'
 import { ZSQLService } from './sql_service'
 import { ZTranslateService } from './translate_service'
 import { ZUserService } from './user_service'
+import { InvoiceService } from './mollie/services/invoice_service'
+import { CustomerService } from './mollie/services/customer_service'
+import { MollieService } from './mollie/services/mollie_service'
 
 // Express middleware
 export { middleware } from './express'
@@ -22,5 +25,9 @@ export {
   ZMailService, 
   ZSQLService, 
   ZTranslateService, 
-  ZUserService
+  ZUserService,
+  
+  InvoiceService,
+  CustomerService,
+  MollieService,
 }
