@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { ZSQLService } from "../sql_service"
+import { ZSQLService } from "../core/sql_service"
 import type {
   ColumnDefinition,
   DatabaseSchema,

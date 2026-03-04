@@ -2,8 +2,8 @@ import nodemailer from 'nodemailer'
 import fss from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
-import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailBlacklist, ZMailSendOptAll, ZMailSendOptTemplate } from "./all-types"
-import { ZMailBlacklistOrm } from './orm/mail_blacklist_orm'
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailBlacklist, ZMailSendOptAll, ZMailSendOptTemplate } from "../all-types"
+import { ZMailBlacklistOrm } from '../orm/mail_blacklist_orm'
 
 export class ZMailService {
 

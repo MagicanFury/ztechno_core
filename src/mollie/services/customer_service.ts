@@ -1,4 +1,4 @@
-import { ZSQLService } from "../../sql_service"
+import { ZSQLService } from "../../core/sql_service"
 import { ZCustomer } from "../types/mollie_types"
 import { CustomersOrm } from "../orm/customers_orm"
 import { MollieService } from "./mollie_service"

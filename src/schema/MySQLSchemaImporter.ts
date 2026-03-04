@@ -1,4 +1,4 @@
-import { ZSQLService } from "../sql_service"
+import { ZSQLService } from "../core/sql_service"
 import type { 
   DatabaseSchema, 
   TableDefinition, 

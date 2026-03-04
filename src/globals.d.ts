@@ -1,6 +1,6 @@
 import express = require('express')
 import { ZUser } from './all-types'
-import { ZUserService } from './user_service'
+import { ZUserService } from './core/user_service'
 export {}
 
 declare global {

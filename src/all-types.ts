@@ -13,4 +13,5 @@ export * from './typings/user_types'
 // Site config types
 export * from './typings/site_config'
 
+// Mollie types
 export * from './mollie/types/mollie_types'
