@@ -1,17 +1,6 @@
 import { ZOrm } from "../../core/orm/orm"
 import { ZSQLService } from "../../core/sql_service"
-
-export type ZSubscriptionItem = {
-  id?: number
-  subscription_id: number
-  description: string
-  quantity: number
-  unit_price: number
-  vat_rate: number
-  total_ex_vat: number
-  total_inc_vat: number
-  sort_order?: number
-}
+import { ZSubscriptionItem } from "../types/mollie_types"
 
 export class SubscriptionItemsOrm extends ZOrm {
 

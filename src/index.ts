@@ -22,6 +22,7 @@ export {
   InvoiceService,
   CustomerService,
   MollieService,
+  SubscriptionService
 } from './mollie'
 export * from './mollie/types/mollie_types'
 

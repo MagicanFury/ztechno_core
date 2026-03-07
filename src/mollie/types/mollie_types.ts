@@ -1,3 +1,4 @@
+import { Locale, SequenceType } from '@mollie/api-client'
 
 // ============================== // Customers
 
@@ -110,4 +111,27 @@ export type ZInvoicePayment = {
   mandate_id?: string|null
   created_at?: string|Date
   updated_at?: string|Date
+}
+
+// ============================== // Subscriptions
+
+export type ZSubscriptionItem = {
+  id?: number
+  subscription_id: number
+  description: string
+  quantity: number
+  unit_price: number
+  vat_rate: number
+  total_ex_vat: number
+  total_inc_vat: number
+  sort_order?: number
+}
+
+export type CreateSubscriptionInput = {
+  customer_id: number
+  interval: string
+  description?: string
+  currency?: string
+  items: Array<Pick<ZSubscriptionItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number }>
+  metadata?: any
 }

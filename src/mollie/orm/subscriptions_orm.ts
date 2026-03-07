@@ -1,31 +1,6 @@
 import { ZOrm } from "../../core/orm/orm"
 import { ZSQLService } from "../../core/sql_service"
-
-export type ZSubscriptionStatus =
-  | 'setup_pending'
-  | 'pending'
-  | 'active'
-  | 'canceled'
-  | 'suspended'
-  | 'completed'
-
-export type ZSubscription = {
-  id?: number
-  customer_id: number
-  mollie_customer_id?: string|null
-  mollie_subscription_id?: string|null
-  status: ZSubscriptionStatus
-  interval: string
-  description?: string|null
-  amount: number
-  currency: string
-  mandate_id?: string|null
-  next_payment_date?: string|null
-  canceled_at?: string|null
-  metadata?: any
-  created_at?: string|Date
-  updated_at?: string|Date
-}
+import { ZSubscription } from "../types/internal_types"
 
 export class SubscriptionsOrm extends ZOrm {
 

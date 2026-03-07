@@ -6,7 +6,7 @@ import { InvoiceItemsOrm } from "../orm/invoice_items_orm"
 import { InvoicePaymentsOrm } from "../orm/invoice_payments_orm"
 import { InvoicesOrm } from "../orm/invoices_orm"
 import { SubscriptionItemsOrm } from "../orm/subscription_items_orm"
-import { SubscriptionsOrm, ZSubscription } from "../orm/subscriptions_orm"
+import { SubscriptionsOrm } from "../orm/subscriptions_orm"
 import { CustomerService } from "./customer_service"
 import { RenderData } from "../../core/types/site_config"
 import { ZMailService } from "../../core/mail_service"
@@ -15,16 +15,7 @@ import { ZSQLService } from "../../core/sql_service"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
 import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus } from "../types/mollie_types"
 import { formatDatetime, toDatetime, toDatetimeFromDateOnly } from "../../core/orm/orm"
-
-export type ZPayResolveResult =
-  | { action: 'redirect', checkoutUrl: string, invoice: ZInvoice }
-  | { action: 'paid', invoice: ZInvoice }
-
-export type ZIssuedPayToken = {
-  token: string
-  expiresAt: string
-  payUrl: string
-}
+import { ZIssuedPayToken, ZPayResolveResult, ZSubscription } from "../types/internal_types"
 
 export class InvoiceService {
   private invoicesOrm: InvoicesOrm
@@ -684,7 +675,7 @@ export class InvoiceService {
 
     return { invoiceId: invoice.id!, status: mappedStatus }
   }
-  
+
   public async generateInvoicePdfBuffer(invoiceId: number): Promise<Buffer> {
     const { invoice, items, customer } = await this.getInvoiceBundle(invoiceId)
     const doc = new PDFDocument({ size: 'A4', margin: 50 })

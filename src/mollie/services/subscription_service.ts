@@ -1,20 +1,13 @@
 import { ZSQLService } from "../../core"
 import { formatDatetime } from "../../core/orm/orm"
-import { ZSubscriptionItem, SubscriptionItemsOrm } from "../orm/subscription_items_orm"
-import { SubscriptionsOrm, ZSubscription } from "../orm/subscriptions_orm"
+import { SubscriptionItemsOrm } from "../orm/subscription_items_orm"
+import { SubscriptionsOrm } from "../orm/subscriptions_orm"
+import { ZSubscription } from "../types/internal_types"
+import { CreateSubscriptionInput, ZSubscriptionItem } from "../types/mollie_types"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
 import { CustomerService } from "./customer_service"
 import { InvoiceService } from "./invoice_service"
 import { MollieService } from "./mollie_service"
-
-export type CreateSubscriptionInput = {
-  customer_id: number
-  interval: string
-  description?: string
-  currency?: string
-  items: Array<Pick<ZSubscriptionItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number }>
-  metadata?: any
-}
 
 export class SubscriptionService {
   

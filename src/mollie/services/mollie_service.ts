@@ -7,29 +7,7 @@ import { ZSQLService } from '../../core'
 import { toDatetime } from '../../core/orm/orm'
 import { InvoiceItemsOrm } from '../orm/invoice_items_orm'
 import { SubscriptionItemsOrm } from '../orm/subscription_items_orm'
-
-export type ZCreatePaymentInput = {
-  amount: { currency: string, value: string }
-  description: string
-  redirectUrl: string
-  webhookUrl: string
-  customerId?: string
-  metadata?: Record<string, any>
-  locale?: Locale
-  sequenceType?: SequenceType
-  mandateId?: string
-}
-
-export type RecoveryStats = {
-  dryRun: boolean
-  startedAt: string
-  durationMs: number
-  customers: { recovered: number, skipped: number }
-  subscriptions: { recovered: number }
-  invoices: { recovered: number, skippedExisting: number }
-  payments: { recovered: number, skippedNoCustomer: number }
-  errors: Array<{ entity: string, mollieId: string, error: string }>
-}
+import { RecoveryStats, ZCreatePaymentInput } from '../types/internal_types'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
