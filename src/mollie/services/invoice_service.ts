@@ -13,9 +13,8 @@ import { ZMailService } from "../../core/mail_service"
 import { MollieService } from "./mollie_service"
 import { ZSQLService } from "../../core/sql_service"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
-import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus } from "../types/mollie_types"
+import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus, ZIssuedPayToken, ZPayResolveResult, ZSubscription } from "../types/mollie_types"
 import { formatDatetime, toDatetime, toDatetimeFromDateOnly } from "../../core/orm/orm"
-import { ZIssuedPayToken, ZPayResolveResult, ZSubscription } from "../types/internal_types"
 
 export class InvoiceService {
   private invoicesOrm: InvoicesOrm

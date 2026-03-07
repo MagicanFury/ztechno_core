@@ -7,7 +7,8 @@ import { ZSQLService } from '../../core'
 import { toDatetime } from '../../core/orm/orm'
 import { InvoiceItemsOrm } from '../orm/invoice_items_orm'
 import { SubscriptionItemsOrm } from '../orm/subscription_items_orm'
-import { RecoveryStats, ZCreatePaymentInput } from '../types/internal_types'
+import { RecoveryStats } from '../types/mollie_types'
+import { ZCreatePaymentInput } from '../types/internal_types'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
@@ -321,6 +322,7 @@ export class MollieService {
     return await this.client.customers.get(customerId)
   }
 
+  /** @internal */
   async createPayment(input: ZCreatePaymentInput): Promise<Payment> {
     return await this.client.payments.create({
       ...input,

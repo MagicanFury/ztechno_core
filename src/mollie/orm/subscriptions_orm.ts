@@ -1,6 +1,6 @@
 import { ZOrm } from "../../core/orm/orm"
 import { ZSQLService } from "../../core/sql_service"
-import { ZSubscription } from "../types/internal_types"
+import { ZSubscription } from "../types/mollie_types"
 
 export class SubscriptionsOrm extends ZOrm {
 
