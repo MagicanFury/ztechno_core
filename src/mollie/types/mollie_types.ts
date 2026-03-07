@@ -44,7 +44,7 @@ export type CreateInvoiceInput = {
   currency?: string
   payment_terms?: string // Dutch law: payment conditions
   due_date?: string
-  items: Array<Pick<ZInvoiceItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number, item_type?: ZInvoiceItemType }>
+  items: (Pick<ZInvoiceItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number, item_type?: ZInvoiceItemType })[]
   metadata?: any
 }
 
@@ -130,7 +130,7 @@ export type CreateSubscriptionInput = {
   interval: string
   description?: string
   currency?: string
-  items: Array<Pick<ZSubscriptionItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number }>
+  items: (Pick<ZSubscriptionItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number })[]
   metadata?: any
 }
 
@@ -184,5 +184,5 @@ export type RecoveryStats = {
   subscriptions: { recovered: number }
   invoices: { recovered: number, skippedExisting: number }
   payments: { recovered: number, skippedNoCustomer: number }
-  errors: Array<{ entity: string, mollieId: string, error: string }>
+  errors: { entity: string, mollieId: string, error: string }[]
 }

@@ -9,7 +9,7 @@ export class SubscriptionItemsOrm extends ZOrm {
   }
 
   public async bulkInsert(items: ZSubscriptionItem[]) {
-    for (let item of items) {
+    for (const item of items) {
       await this.sqlService.query(/*SQL*/`
         INSERT INTO \`${this.alias}\`
           (subscription_id, description, quantity, unit_price, vat_rate, total_ex_vat, total_inc_vat, sort_order)

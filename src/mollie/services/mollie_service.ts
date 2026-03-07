@@ -68,7 +68,7 @@ export class MollieService {
     }
 
     // 1. Recover customers
-    const allCustomers: Array<{ mollieId: string, localId: number }> = []
+    const allCustomers: { mollieId: string, localId: number }[] = []
     let customerPage = await mollie.customers.page()
     while (customerPage.length > 0) {
       for (const mc of customerPage) {
