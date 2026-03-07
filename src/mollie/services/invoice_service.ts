@@ -27,7 +27,7 @@ export class InvoiceService {
   private mailService: ZMailService
 
   private get config() { return this.opt.siteConfig }
-  private get baseUrl() { return this.opt.siteConfig.company.website }
+  private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
   constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string }) {
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService })
@@ -886,20 +886,20 @@ export class InvoiceService {
       ? `Betaling ontvangen ${invoice.invoice_number}`
       : `Factuur ${invoice.invoice_number}`
     const content = isReceipt
-      ? `<br>Beste ${customer.name},<br><br>We hebben uw betaling ontvangen. De factuur vindt u in de bijlage.<br><br>Dank u wel, ${cfg.company.website}<br>`
-      : `<br>Beste ${customer.name},<br><br>U vindt uw factuur in de bijlage.<br><br><a href="${pay?.payUrl}" style="display:inline-block;padding:10px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px;">Betaal nu</a><br><br>Dank u wel, ${cfg.company.website}<br>`
+      ? `<br>Beste ${customer.name},<br><br>We hebben uw betaling ontvangen. De factuur vindt u in de bijlage.<br><br>Dank u wel, ${cfg.company.companyShort}<br>`
+      : `<br>Beste ${customer.name},<br><br>U vindt uw factuur in de bijlage.<br><br><a href="${pay?.payUrl}" style="display:inline-block;padding:10px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px;">Betaal nu</a><br><br>Dank u wel, ${cfg.company.companyShort}<br>`
 
 
     await this.mailService.sendAdvanced({
-      from: `${cfg.company.website} <${cfg.contact.contact}>`,
+      from: `${cfg.company.company} <${cfg.contact.contact}>`,
       recipient: to,
       subject,
       template: 'template.html',
       inject: {
         title,
         content,
-        logoSrc: `${cfg.company.website}/img/logo-small.png`,
-        baseUrl: cfg.company.website,
+        logoSrc: `${cfg.baseUrl}/img/logo-small.png`,
+        baseUrl: cfg.baseUrl,
       },
       attachments: [
         {

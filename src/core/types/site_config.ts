@@ -1,9 +1,8 @@
 export type Coordinates = [number, number]
 
 export type CompanyInfo = {
-  baseUrl: string
-  website: string
   company: string
+  companyShort: string
   copyright: string
   kvk: string
   kvkUrl: string
@@ -44,6 +43,7 @@ export type RenderContext = {
 }
 
 export type RenderData = {
+  baseUrl: string
   company: CompanyInfo
   address: Address
   contact: ContactInfo
