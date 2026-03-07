@@ -14,6 +14,7 @@ import { MollieService } from "./mollie_service"
 import { ZSQLService } from "../../core/sql_service"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
 import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus } from "../types/mollie_types"
+import { formatDatetime, toDatetime, toDatetimeFromDateOnly } from "../../core/orm/orm"
 
 export type ZPayResolveResult =
   | { action: 'redirect', checkoutUrl: string, invoice: ZInvoice }
@@ -161,24 +162,8 @@ export class InvoiceService {
     return `INV-${year}-${sequence.toString().padStart(6, '0')}`
   }
 
-  private toSqlDateTime(value?: string|null) {
-    if (!value) return null
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) return null
-    return date.toISOString().slice(0, 19).replace('T', ' ')
-  }
-
-  private formatSqlDateTime(value: Date) {
-    return value.toISOString().slice(0, 19).replace('T', ' ')
-  }
-
   private getWebhookUrl() {
     return this.opt.mollieService.webhookUrl
-  }
-
-  private toSqlDateTimeFromDateOnly(value?: string|null) {
-    if (!value) return null
-    return this.toSqlDateTime(`${value}T00:00:00Z`)
   }
 
   private signPayTokenRaw(raw: string) {
@@ -286,7 +271,7 @@ export class InvoiceService {
     }
     return new Date(invoice.pay_token_expires_at).getTime() <= Date.now()
   }
-
+  
   public async createMolliePaymentForInvoice(
     invoice: ZInvoice,
     opt?: { sequenceType?: 'oneoff'|'first'|'recurring', mandateId?: string|null, metadata?: Record<string, any> }
@@ -308,6 +293,23 @@ export class InvoiceService {
     metadata.invoice_id = invoice.id
     if (invoice.subscription_id) {
       metadata.subscription_id = invoice.subscription_id
+    }
+    if (invoice.payment_terms) {
+      metadata.payment_terms = invoice.payment_terms
+    }
+    if (invoice.due_date) {
+      metadata.due_date = invoice.due_date
+    }
+    // Store line items for recovery
+    const invoiceItems = await this.itemsOrm.findByInvoice(invoice.id!)
+    if (invoiceItems.length > 0) {
+      metadata.items = invoiceItems.map(it => ({
+        d: it.description,
+        q: it.quantity,
+        u: it.unit_price,
+        v: it.vat_rate,
+        t: it.item_type ?? 'service',
+      }))
     }
 
     const payment = await this.opt.mollieService.createPayment({
@@ -331,8 +333,8 @@ export class InvoiceService {
       amount: Number(payment.amount.value),
       currency: payment.amount.currency,
       checkout_url: payment?._links?.checkout?.href ?? null,
-      paid_at: this.toSqlDateTime(payment.paidAt ?? null),
-      expires_at: this.toSqlDateTime(payment.expiresAt as any),
+      paid_at: toDatetime(payment.paidAt ?? null),
+      expires_at: toDatetime(payment.expiresAt as any),
       mandate_id: (payment.mandateId as any) ?? (opt?.mandateId ?? null),
     })
 
@@ -351,7 +353,7 @@ export class InvoiceService {
     const raw = this.createPayTokenRaw(invoice.id!)
     const token = this.buildPayToken(raw)
     const expiresAtDate = new Date(Date.now() + this.payTokenLifetimeMs)
-    const expiresAt = this.formatSqlDateTime(expiresAtDate)
+    const expiresAt = formatDatetime(expiresAtDate)
     const tokenHash = this.hashPayTokenRaw(raw)
 
     await this.invoicesOrm.setPayToken(invoice.id!, {
@@ -374,7 +376,7 @@ export class InvoiceService {
     if (this.isInvoiceFinalizedForPay(invoice)) {
       return {
         token: '',
-        expiresAt: invoice.pay_token_expires_at ?? this.formatSqlDateTime(new Date()),
+        expiresAt: invoice.pay_token_expires_at ?? formatDatetime(new Date()),
         payUrl: `${this.baseUrl}/pay/success?invoice=${encodeURIComponent(invoice.invoice_number)}`,
       }
     }
@@ -466,7 +468,7 @@ export class InvoiceService {
     const { items, amount_due } = this.calcTotals(input.items)
     const invoice_number = await this.generateInvoiceNumber()
     const status = overrides?.status ?? 'pending'
-    const issuedAt = this.formatSqlDateTime(new Date())
+    const issuedAt = formatDatetime(new Date())
     const paidAt = overrides?.paid_at ?? (status === 'paid' ? issuedAt : null)
     const amount_paid = overrides?.amount_paid ?? (status === 'paid' ? amount_due : 0)
 
@@ -544,7 +546,7 @@ export class InvoiceService {
     const hadInvoice = !!invoice
     const mappedStatus = this.opt.mollieService.mapPaymentStatus(payment.status as any)
     const paidAmount = mappedStatus === 'paid' ? Number(payment.amount.value) : undefined
-    const paidAt = (mappedStatus === 'paid' && payment.paidAt) ? this.toSqlDateTime(payment.paidAt) : null
+    const paidAt = (mappedStatus === 'paid' && payment.paidAt) ? toDatetime(payment.paidAt) : null
 
     if (!invoice && subscription) {
       const subscriptionItems = await this.subscriptionItemsOrm.findBySubscription(subscription.id!)
@@ -574,8 +576,8 @@ export class InvoiceService {
         paid_at: paidAt,
         amount_paid: mappedStatus === 'paid' ? Number(payment.amount.value) : 0,
         subscription_id: subscription.id!,
-        subscription_period_start: this.formatSqlDateTime(periodBase),
-        subscription_period_end: this.formatSqlDateTime(periodEnd),
+        subscription_period_start: formatDatetime(periodBase),
+        subscription_period_end: formatDatetime(periodEnd),
         issuePayToken: false,
         mollie_payment_id: payment.id,
         checkout_url: payment?._links?.checkout?.href ?? null,
@@ -597,8 +599,8 @@ export class InvoiceService {
       amount: Number(payment.amount.value),
       currency: payment.amount.currency,
       checkout_url: payment?._links?.checkout?.href ?? null,
-      paid_at: this.toSqlDateTime(payment.paidAt ?? null),
-      expires_at: this.toSqlDateTime(payment.expiresAt as any),
+      paid_at: toDatetime(payment.paidAt ?? null),
+      expires_at: toDatetime(payment.expiresAt as any),
       mandate_id: (payment.mandateId as any) ?? null,
     })
 
@@ -620,8 +622,8 @@ export class InvoiceService {
       const interval = parseSubscriptionInterval(subscription.interval)
       const periodEnd = addSubscriptionInterval(periodBase, interval)
       await this.invoicesOrm.updateSubscriptionPeriod(invoice.id!, {
-        subscription_period_start: this.formatSqlDateTime(periodBase),
-        subscription_period_end: this.formatSqlDateTime(periodEnd),
+        subscription_period_start: formatDatetime(periodBase),
+        subscription_period_end: formatDatetime(periodEnd),
       })
     }
 
@@ -637,6 +639,8 @@ export class InvoiceService {
       const interval = parseSubscriptionInterval(subscription.interval)
       const startDate = formatDateOnly(addSubscriptionInterval(paidDate, interval))
 
+      const subscriptionItems = await this.subscriptionItemsOrm.findBySubscription(subscription.id!)
+
       const remote = await this.opt.mollieService.createSubscription({
         customerId: subscription.mollie_customer_id!,
         amount: {
@@ -647,7 +651,15 @@ export class InvoiceService {
         description: subscription.description ?? `Subscription ${subscription.id}`,
         startDate,
         webhookUrl: this.getWebhookUrl(),
-        metadata: { subscription_id: subscription.id },
+        metadata: {
+          subscription_id: subscription.id,
+          items: subscriptionItems.map(it => ({
+            d: it.description,
+            q: it.quantity,
+            u: it.unit_price,
+            v: it.vat_rate,
+          })),
+        },
         mandateId: (payment.mandateId as any) ?? undefined,
       })
 
@@ -655,8 +667,8 @@ export class InvoiceService {
         mollie_subscription_id: remote.id,
         status: remote.status as any,
         mandate_id: (remote.mandateId as any) ?? (payment.mandateId as any) ?? null,
-        next_payment_date: remote.nextPaymentDate ? this.toSqlDateTimeFromDateOnly(remote.nextPaymentDate) : null,
-        canceled_at: remote.canceledAt ? this.toSqlDateTime(remote.canceledAt) : null,
+        next_payment_date: remote.nextPaymentDate ? toDatetimeFromDateOnly(remote.nextPaymentDate) : null,
+        canceled_at: remote.canceledAt ? toDatetime(remote.canceledAt) : null,
       })
     }
 
@@ -665,14 +677,14 @@ export class InvoiceService {
       await this.subscriptionsOrm.update(subscription.id!, {
         status: remote.status as any,
         mandate_id: (remote.mandateId as any) ?? subscription.mandate_id ?? null,
-        next_payment_date: remote.nextPaymentDate ? this.toSqlDateTimeFromDateOnly(remote.nextPaymentDate) : null,
-        canceled_at: remote.canceledAt ? this.toSqlDateTime(remote.canceledAt) : null,
+        next_payment_date: remote.nextPaymentDate ? toDatetimeFromDateOnly(remote.nextPaymentDate) : null,
+        canceled_at: remote.canceledAt ? toDatetime(remote.canceledAt) : null,
       })
     }
 
     return { invoiceId: invoice.id!, status: mappedStatus }
   }
-
+  
   public async generateInvoicePdfBuffer(invoiceId: number): Promise<Buffer> {
     const { invoice, items, customer } = await this.getInvoiceBundle(invoiceId)
     const doc = new PDFDocument({ size: 'A4', margin: 50 })

@@ -47,6 +47,14 @@ export class CustomersOrm extends ZOrm {
     return res[0]
   }
 
+  public async findByMollieCustomerId(mollie_customer_id: string) {
+    const res = await this.sqlService.exec<ZCustomer>({
+      query: `SELECT * FROM \`${this.alias}\` WHERE mollie_customer_id=:mollie_customer_id LIMIT 1`,
+      params: { mollie_customer_id }
+    })
+    return res[0]
+  }
+
   public async findAll() {
     return await this.sqlService.exec<ZCustomer>({ query: `SELECT * FROM \`${this.alias}\` ORDER BY created_at DESC` })
   }

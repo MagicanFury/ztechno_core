@@ -3,6 +3,7 @@ export { ZEngineBase } from './engine_base'
 export { ZCryptoService } from './crypto_service'
 export { ZMailService } from './mail_service'
 export { ZSQLService } from './sql_service'
+export type { ZSQLOptions, ZTransaction } from './sql_service'
 export { ZTranslateService } from './translate_service'
 export { ZUserService } from './user_service'
 
