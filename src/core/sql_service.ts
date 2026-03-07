@@ -9,6 +9,21 @@ export type ZSQLOptions = mysql.PoolConfig & {
   parseBooleans?: boolean
 }
 
+/**
+ * A scoped transaction handle passed to the `transaction()` callback.
+ * All queries executed through this handle run on the same connection
+ * inside a single BEGIN / COMMIT / ROLLBACK block.
+ */
+export interface ZTransaction {
+  /** Run a raw query inside the transaction (no type conversions). */
+  query<T = any>(sql: string, params?: any[] | { [key: string]: any }): Promise<T[]>
+  query(sql: string, params?: any[] | { [key: string]: any }): Promise<{ insertId: number; affectedRows: number }>
+
+  /** Run a query with automatic date/boolean conversions inside the transaction. */
+  exec<T = any>(opt: { query: string; params?: any[] | { [key: string]: any } }): Promise<T[]>
+  exec(opt: { query: string; params?: any[] | { [key: string]: any } }): Promise<{ insertId: number; affectedRows: number }>
+}
+
 export class ZSQLService {
 
   private pool: mysql.Pool
@@ -217,6 +232,116 @@ export class ZSQLService {
       return true
     }
     return false
+  }
+
+  // ── Transaction helpers ────────────────────────────────────────────
+
+  private beginTransaction(con: mysql.PoolConnection): Promise<void> {
+    return new Promise((resolve, reject) => {
+      con.beginTransaction((err) => (err ? reject(err) : resolve()))
+    })
+  }
+
+  private commitTransaction(con: mysql.PoolConnection): Promise<void> {
+    return new Promise((resolve, reject) => {
+      con.commit((err) => (err ? reject(err) : resolve()))
+    })
+  }
+
+  private rollbackTransaction(con: mysql.PoolConnection): Promise<void> {
+    return new Promise((resolve, reject) => {
+      con.rollback(() => resolve()) // rollback should not throw
+    })
+  }
+
+  private queryOnConnection<T>(con: mysql.PoolConnection, sql: string, params?: any[] | { [key: string]: any }): Promise<T[]> {
+    return new Promise<T[]>((resolve, reject) => {
+      if (Array.isArray(params)) {
+        con.query(sql, params, (err, result) => (err ? reject(err) : resolve(result)))
+      } else {
+        sql = this.formatQueryParams(con, sql, params)
+        con.query(sql, (err, result) => (err ? reject(err) : resolve(result)))
+      }
+    })
+  }
+
+  private queryOnConnectionWithFields<T>(con: mysql.PoolConnection, sql: string, params?: any[] | { [key: string]: any }): Promise<{ results: T[]; fields: mysql.FieldInfo[] }> {
+    return new Promise((resolve, reject) => {
+      if (Array.isArray(params)) {
+        con.query(sql, params, (err, results, fields) => (err ? reject(err) : resolve({ results, fields })))
+      } else {
+        sql = this.formatQueryParams(con, sql, params)
+        con.query(sql, (err, results, fields) => (err ? reject(err) : resolve({ results, fields })))
+      }
+    })
+  }
+
+  private buildExecOnConnection(con: mysql.PoolConnection) {
+    const self = this
+    return async function execOnConnection<T = any>(opt: { query: string; params?: any[] | { [key: string]: any } }): Promise<any> {
+      const { results, fields } = await self.queryOnConnectionWithFields<T>(con, opt.query, opt.params)
+      if (!Array.isArray(results)) return results
+      if (!self.options.dateStringTimezone && !self.options.parseBooleans) return results
+
+      const booleanColumns = new Set<string>()
+      if (self.options.parseBooleans && fields) {
+        fields.forEach(field => {
+          if (field.type === 1 && field.length === 1) booleanColumns.add(field.name)
+        })
+      }
+      return results.map(row => {
+        Object.keys(row).map(key => {
+          if (self.options.dateStringTimezone && self.isSqlDate(row[key])) {
+            row[key] = new Date(row[key] + self.options.dateStringTimezone)
+          }
+          if (self.options.parseBooleans && booleanColumns.has(key) && (row[key] === 0 || row[key] === 1)) {
+            row[key] = row[key] === 1
+          }
+        })
+        return row
+      })
+    }
+  }
+
+  /**
+   * Executes a callback inside a database transaction.
+   * Automatically calls BEGIN before and COMMIT after the callback.
+   * If the callback throws, the transaction is rolled back and the error is re-thrown.
+   *
+   * @template T - The return type of the callback
+   * @param fn - An async function that receives a {@link ZTransaction} handle
+   * @returns The value returned by `fn`
+   *
+   * @example
+   * ```ts
+   * const result = await sqlService.transaction(async (trx) => {
+   *   await trx.query('INSERT INTO orders (customer_id) VALUES (:id)', { id: 42 })
+   *   await trx.query('UPDATE inventory SET stock = stock - 1 WHERE product_id = :pid', { pid: 7 })
+   *   return 'done'
+   * })
+   * ```
+   */
+  public async transaction<T = void>(fn: (trx: ZTransaction) => Promise<T>): Promise<T> {
+    const con = await this.getPoolConnection()
+    await this.beginTransaction(con)
+
+    const trx: ZTransaction = {
+      query: ((sql: string, params?: any[] | { [key: string]: any }) => {
+        return this.queryOnConnection(con, sql, params)
+      }) as ZTransaction['query'],
+      exec: this.buildExecOnConnection(con) as ZTransaction['exec'],
+    }
+
+    try {
+      const result = await fn(trx)
+      await this.commitTransaction(con)
+      con.release()
+      return result
+    } catch (err) {
+      await this.rollbackTransaction(con)
+      con.release()
+      throw err
+    }
   }
 
   /**
