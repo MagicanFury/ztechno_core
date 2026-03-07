@@ -12,7 +12,6 @@ import { ZCreatePaymentInput } from '../types/internal_types'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-
 export class MollieService {
 
   protected key: string
@@ -42,6 +41,40 @@ export class MollieService {
       throw new Error('MOLLIE_LIVE_KEY or MOLLIE_TEST_KEY is missing')
     }
     return createMollieClient({ apiKey })
+  }
+
+  async resetDatabase(options?: { dryRun?: boolean }) {
+    const customersOrm = new CustomersOrm({ sqlService: this.opt.sqlService })
+    const subscriptionsOrm = new SubscriptionsOrm({ sqlService: this.opt.sqlService })
+    const subscriptionItemsOrm = new SubscriptionItemsOrm({ sqlService: this.opt.sqlService })
+    const invoicesOrm = new InvoicesOrm({ sqlService: this.opt.sqlService })
+    const invoiceItemsOrm = new InvoiceItemsOrm({ sqlService: this.opt.sqlService })
+    const paymentsOrm = new InvoicePaymentsOrm({ sqlService: this.opt.sqlService })
+
+    // Child tables first, then parent tables (respect FK ordering)
+    const orms = [invoiceItemsOrm, paymentsOrm, invoicesOrm, subscriptionItemsOrm, subscriptionsOrm, customersOrm]
+
+    if (options?.dryRun) {
+      const counts: Record<string, number> = {}
+      for (const orm of orms) {
+        const rows = await this.opt.sqlService.exec<{ cnt: number }>({
+          query: `SELECT COUNT(*) AS cnt FROM \`${orm.alias}\``
+        })
+        counts[orm.alias] = rows[0]?.cnt ?? 0
+      }
+      return { dryRun: true, deleted: counts }
+    }
+
+    return await this.opt.sqlService.transaction(async (trx) => {
+      const deleted: Record<string, number> = {}
+      trx.query('SET FOREIGN_KEY_CHECKS = 0')
+      for (const orm of orms) {
+        const res: any = await trx.query(`DELETE FROM \`${orm.alias}\``)
+        deleted[orm.alias] = res?.affectedRows ?? 0
+      }
+      await trx.query('SET FOREIGN_KEY_CHECKS = 1')
+      return { dryRun: false, deleted }
+    })
   }
 
   async recoverFromMollie(options?: { dryRun?: boolean }): Promise<RecoveryStats> {
