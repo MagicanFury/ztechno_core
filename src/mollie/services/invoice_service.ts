@@ -689,7 +689,7 @@ export class InvoiceService {
     // === COMPANY LOGO (left-aligned) ===
     const logoPath = path.join(process.cwd(), '../zwebsite/public/img/invoice/invoice-logo.png')
     if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 50, 50, { width: 200 }) // Left side of A4 page
+      doc.image(logoPath, 50, 50, { width: 150 }) // Left side of A4 page
     }
 
     const cfg = this.opt.siteConfig
@@ -750,7 +750,7 @@ export class InvoiceService {
     const col5 = 480  // Total Ex. VAT
 
     doc.fontSize(9).font('Helvetica-Bold')
-    doc.text('Omschrijving', col1, tableTop)
+    doc.text('Product / Dienst', col1, tableTop)
     doc.text('Aantal', col2, tableTop)
     doc.text('BTW %', col3, tableTop)
     doc.text('Prijs excl.', col4, tableTop)
