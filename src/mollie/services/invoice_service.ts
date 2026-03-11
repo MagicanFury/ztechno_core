@@ -688,6 +688,7 @@ export class InvoiceService {
 
     // === COMPANY LOGO (left-aligned) ===
     const logoPath = path.join(process.cwd(), '../zwebsite/public/img/invoice/invoice-logo.png')
+    const certPath = path.join(process.cwd(), '../zwebsite/public/img/invoice/invoice-certificates.png')
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, 50, 50, { width: 150 }) // Left side of A4 page
     }
@@ -840,30 +841,40 @@ export class InvoiceService {
     P.row('Totaal incl. BTW:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
     P.normal()
 
-    // === DESCRIPTION ===
+    // === TWO-COLUMN FOOTER: Description & Terms (left) | Bank details (right) ===
+    const footerStartY = P.y + 10
+
+    // LEFT COLUMN: Description + Payment terms
+    P.y = footerStartY
     if (invoice.description) {
       P.size(10).bold()
-      P.skip(10).text('Omschrijving:', 50, {}, 12)
+      P.text('Omschrijving:', 50, {}, 12)
       P.normal()
-      P.text(invoice.description, 50, {}, 12)
+      P.text(invoice.description, 50, { width: 260 }, 12)
+      P.skip(4)
     }
 
-    // === PAYMENT TERMS (Dutch law recommended) ===
     if (invoice.payment_terms) {
       P.size(10).bold()
-      P.skip(10).text('Betalingsvoorwaarden:', 50, {}, 12)
+      P.text('Betalingsvoorwaarden:', 50, {}, 12)
       P.normal()
-      P.text(invoice.payment_terms, 50, {}, 12)
+      P.text(invoice.payment_terms, 50, { width: 260 }, 12)
     }
+    const leftColEndY = P.y
 
-    // === BANK DETAILS FOR PAYMENT ===
+    // RIGHT COLUMN: Bank details
+    P.y = footerStartY
+    const bankCol = 340
     P.size(10).bold()
-    P.skip(10).text('Betalingsgegevens:', 50, {}, 14)
+    P.text('Betalingsgegevens:', bankCol, { width: 220 }, 14)
     P.normal()
-    P.text(`IBAN: ${cfg.company.iban}`, 50)
-    if (cfg.company.bankName) P.text(`Bank: ${cfg.company.bankName}`, 50)
-    P.text(`T.n.v.: ${cfg.company.company}`, 50)
-    P.text(`O.v.v.: ${invoice.invoice_number}`, 50)
+    P.text(`IBAN: ${cfg.company.iban}`, bankCol, { width: 220 })
+    if (cfg.company.bankName) P.text(`Bank: ${cfg.company.bankName}`, bankCol, { width: 220 })
+    P.text(`T.n.v.: ${cfg.company.company}`, bankCol, { width: 220 })
+    P.text(`O.v.v.: ${invoice.invoice_number}`, bankCol, { width: 220 })
+    const rightColEndY = P.y
+
+    P.y = Math.max(leftColEndY, rightColEndY)
 
     doc.end()
     return await done
