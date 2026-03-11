@@ -835,11 +835,11 @@ export class InvoiceService {
     let subsidyTotal = 0
     if (subsidyItems.length > 0) {
       P.normal().size(10)
-      P.row('Subtotaal incl. BTW:', 370, this.formatMoney(serviceTotalIncVat, invoice.currency), col5)
+      P.row('Totaal incl. BTW:', 370, this.formatMoney(serviceTotalIncVat, invoice.currency), col5)
         .skip(4).dashedRule(370, 560).skip(8)
 
       P.bold().size(9)
-      P.text('Subsidie', 50, {}, 12)
+      P.text('Geschatte Subsidie', 50, {}, 12)
       P.normal().size(9)
 
       for (const item of subsidyItems) {
@@ -855,9 +855,13 @@ export class InvoiceService {
 
     const grandTotal = serviceTotalIncVat + subsidyTotal // subsidyTotal is negative
 
-    P.bold()
-    P.row('Totaal incl. BTW:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
-    P.normal()
+    if (subsidyItems.length > 0) {      
+      P.row('Totale Investering incl. Subsidie:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
+    } else {
+      P.bold()
+      P.row('Totaal incl. BTW:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
+      P.normal()
+    }
 
     // === TWO-COLUMN FOOTER: Description & Terms (left) | Bank details (right) ===
     const footerStartY = P.y + 10
