@@ -933,7 +933,7 @@ export class InvoiceService {
       ? `<br>Beste ${customer.name},<br><br>We hebben uw betaling ontvangen. De factuur vindt u in de bijlage.<br><br>Dank u wel, ${cfg.company.companyShort}<br>`
       : `<br>Beste ${customer.name},<br><br>U vindt uw factuur in de bijlage.<br><br><a href="${pay?.payUrl}" style="display:inline-block;padding:10px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px;">Betaal nu</a><br><br>Dank u wel, ${cfg.company.companyShort}<br>`
 
-    let cc = (isReceipt) ? undefined : (opt?.ccOwner ? cfg.contact.contactQuote : undefined)
+    const cc = (isReceipt) ? undefined : (opt?.ccOwner ? cfg.contact.contactQuote : undefined)
 
     await this.mailService.sendAdvanced({
       from: `${cfg.company.company} <${cfg.contact.contact}>`,
