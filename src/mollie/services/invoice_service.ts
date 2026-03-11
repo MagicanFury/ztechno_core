@@ -834,7 +834,7 @@ export class InvoiceService {
     // === SUBSIDY SECTION (shown before grand total when subsidies are present) ===
     let subsidyTotal = 0
     if (subsidyItems.length > 0) {
-      P.normal().size(10)
+      P.bold().size(10)
       P.row('Totaal incl. BTW:', 370, this.formatMoney(serviceTotalIncVat, invoice.currency), col5)
         .skip(4).dashedRule(370, 560).skip(8)
 
