@@ -846,19 +846,18 @@ export class InvoiceService {
         const subsidyAmount = Number(item.total_inc_vat ?? 0) // negative
         subsidyTotal += subsidyAmount
         doc.text(item.description, col1, P.y, { width: 400 })
-        doc.text(`− ${this.formatMoney(Math.abs(subsidyAmount), invoice.currency)}`, col5, P.y)
+        doc.text(`- ${this.formatMoney(Math.abs(subsidyAmount), invoice.currency)}`, col5, P.y)
         P.skip(14)
       }
 
-      P.rule(370, 560).skip(8)
+      P.dashedRule(370, 560).skip(8)
     }
 
     const grandTotal = serviceTotalIncVat + subsidyTotal // subsidyTotal is negative
 
-    if (subsidyItems.length > 0) {      
-      P.bold()
+    if (subsidyItems.length > 0) {     
+      P.normal() 
       P.row('Totale Investering incl. Subsidie:', 280, this.formatMoney(grandTotal, invoice.currency), col5, 20)
-      P.normal()
     } else {
       P.bold()
       P.row('Totaal incl. BTW:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
