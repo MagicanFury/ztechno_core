@@ -876,6 +876,15 @@ export class InvoiceService {
 
     P.y = Math.max(leftColEndY, rightColEndY)
 
+    // === CERTIFICATES (bottom of page) ===
+    if (fs.existsSync(certPath)) {
+      const certWidth = 180 // scaled from 360x100 original
+      const certHeight = certWidth * (100 / 360)
+      P.skip(20)
+      doc.image(certPath, 50, P.y, { width: certWidth, height: certHeight })
+      P.skip(certHeight)
+    }
+
     doc.end()
     return await done
   }
