@@ -854,10 +854,10 @@ export class InvoiceService {
     }
 
     const grandTotal = serviceTotalIncVat + subsidyTotal // subsidyTotal is negative
-
+    P.size(10)
     if (subsidyItems.length > 0) {     
-      P.normal() 
-      P.row('Totale Investering incl. Subsidie:', 280, this.formatMoney(grandTotal, invoice.currency), col5, 20)
+      P.normal()
+      P.row('Uw Totale Investering incl. Subsidie:', 290, this.formatMoney(grandTotal, invoice.currency), col5, 20)
     } else {
       P.bold()
       P.row('Totaal incl. BTW:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
