@@ -864,19 +864,19 @@ export class InvoiceService {
 
     // LEFT COLUMN: Description + Payment terms
     P.y = footerStartY
+    if (invoice.payment_terms) {
+      P.size(10).bold()
+      P.text('Betalingsvoorwaarden:', 50, { width: 260 }, 12)
+      P.normal()
+      P.text(invoice.payment_terms, 50, { width: 260 }, 12)
+    }
+
     if (invoice.description) {
       P.size(10).bold()
-      P.text('Omschrijving:', 50, {}, 12)
+      P.text('Omschrijving:', 50, { width: 260 }, 12)
       P.normal()
       P.text(invoice.description, 50, { width: 260 }, 12)
       P.skip(4)
-    }
-
-    if (invoice.payment_terms) {
-      P.size(10).bold()
-      P.text('Betalingsvoorwaarden:', 50, {}, 12)
-      P.normal()
-      P.text(invoice.payment_terms, 50, { width: 260 }, 12)
     }
     const leftColEndY = P.y
 
