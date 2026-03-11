@@ -47,6 +47,12 @@ export class InvoicesOrm extends ZOrm {
     return res[0]
   }
 
+  public async updateInvoiceNumber(id: number, invoice_number: string) {
+    await this.sqlService.query(/*SQL*/`
+      UPDATE \`${this.alias}\` SET invoice_number=:invoice_number, updated_at=NOW() WHERE id=:id
+    `, { id, invoice_number })
+  }
+
   public async findByInvoiceNumber(invoice_number: string) {
     const res = await this.sqlService.exec<ZInvoice>({
       query: `SELECT * FROM \`${this.alias}\` WHERE invoice_number=:invoice_number LIMIT 1`,

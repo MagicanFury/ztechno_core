@@ -25,17 +25,21 @@ export class InvoiceService {
   private payTokenSecret = this.opt.payTokenSecret || ''
   private payTokenLifetimeMs = 60 * 24 * 60 * 60 * 1000 
   private mailService: ZMailService
+  private invoiceNumberMode: 'sequence' | 'id'
+  private invoiceNumberFormat: (id: number) => string
 
   private get config() { return this.opt.siteConfig }
   private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
-  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string }) {
+  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string }) {
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService })
     this.itemsOrm = new InvoiceItemsOrm({ sqlService: opt.sqlService })
     this.paymentsOrm = new InvoicePaymentsOrm({ sqlService: opt.sqlService })
     this.subscriptionsOrm = new SubscriptionsOrm({ sqlService: opt.sqlService })
     this.subscriptionItemsOrm = new SubscriptionItemsOrm({ sqlService: opt.sqlService })
     this.mailService = opt.mailService
+    this.invoiceNumberMode = opt.invoiceNumberMode ?? 'sequence'
+    this.invoiceNumberFormat = opt.invoiceNumberFormat ?? ((id: number) => `INV-${id.toString().padStart(6, '0')}`)
   }
 
   async autoInit() {
@@ -456,7 +460,10 @@ export class InvoiceService {
     }
 
     const { items, amount_due } = this.calcTotals(input.items)
-    const invoice_number = await this.generateInvoiceNumber()
+    const useIdMode = this.invoiceNumberMode === 'id'
+    const invoice_number = useIdMode
+      ? `PENDING-${crypto.randomUUID()}`
+      : await this.generateInvoiceNumber()
     const status = overrides?.status ?? 'pending'
     const issuedAt = formatDatetime(new Date())
     const paidAt = overrides?.paid_at ?? (status === 'paid' ? issuedAt : null)
@@ -486,8 +493,19 @@ export class InvoiceService {
       metadata: input.metadata ?? null,
     }
 
-    await this.invoicesOrm.create(invoicePayload)
-    const savedInvoice = await this.invoicesOrm.findByInvoiceNumber(invoice_number)
+    const createResult = await this.invoicesOrm.create(invoicePayload)
+    let savedInvoice: ZInvoice | undefined
+
+    if (useIdMode) {
+      const insertId = (createResult as any).insertId
+      if (!insertId) throw new Error('Failed to get insertId for id-based invoice numbering')
+      const finalNumber = this.invoiceNumberFormat(insertId)
+      await this.invoicesOrm.updateInvoiceNumber(insertId, finalNumber)
+      savedInvoice = await this.invoicesOrm.findById(insertId)
+    } else {
+      savedInvoice = await this.invoicesOrm.findByInvoiceNumber(invoice_number)
+    }
+
     if (!savedInvoice) {
       throw new Error('Failed to persist invoice')
     }
