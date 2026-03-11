@@ -913,7 +913,7 @@ export class InvoiceService {
     return await done
   }
 
-  public async sendInvoiceEmail(invoiceId: number, recipient?: string, opt?: { mode?: 'invoice'|'receipt' }) {
+  public async sendInvoiceEmail(invoiceId: number, recipient?: string, opt?: { mode?: 'invoice'|'receipt', ccOwner?: boolean }) {
     const { invoice, customer } = await this.getInvoiceBundle(invoiceId)
     const mode = opt?.mode ?? 'invoice'
     const isReceipt = mode === 'receipt'
@@ -934,9 +934,12 @@ export class InvoiceService {
       : `<br>Beste ${customer.name},<br><br>U vindt uw factuur in de bijlage.<br><br><a href="${pay?.payUrl}" style="display:inline-block;padding:10px 16px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:6px;">Betaal nu</a><br><br>Dank u wel, ${cfg.company.companyShort}<br>`
 
 
+    const cc = opt?.ccOwner ? cfg.contact.contactQuote : undefined
+
     await this.mailService.sendAdvanced({
       from: `${cfg.company.company} <${cfg.contact.contact}>`,
       recipient: to,
+      cc,
       subject,
       template: 'template.html',
       inject: {

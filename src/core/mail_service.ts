@@ -99,6 +99,7 @@ export class ZMailService {
     const mailDetails: nodemailer.SendMailOptions = {
       from: mailOpts.from || this.opt.mailSender,
       to: mailOpts.recipient,
+      cc: mailOpts.cc || undefined,
       subject: mailOpts.subject,
       text: mailOpts.body || undefined,
       html: mailOpts.html || undefined,

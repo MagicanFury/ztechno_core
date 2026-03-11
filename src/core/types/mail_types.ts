@@ -18,7 +18,7 @@ interface SingleDKIMKeyOptions extends OptionalOptions {
 }
 export type MailResponse = SMTPTransport.SentMessageInfo
 export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService: ZSQLService, hashSalt?: string, dirTemplate?: string, baseInject?: { logoSrc?: string, baseUrl?: string, title: string, content: string } }
-export type MailOptionsBase = {recipient: string, subject: string, from?: string, priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions, attachments?: MailAttachment[]}
+export type MailOptionsBase = {recipient: string, subject: string, from?: string, cc?: string | string[], priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions, attachments?: MailAttachment[]}
 export type MailOptionsText = MailOptionsBase & {body: string}
 export type MailOptionsHtml = MailOptionsBase & {html: string}
 export type MailOptions = MailOptionsBase & {body?: string, html?: string}
