@@ -869,6 +869,7 @@ export class InvoiceService {
       P.text('Betalingsvoorwaarden:', 50, { width: 260 }, 12)
       P.normal()
       P.text(invoice.payment_terms, 50, { width: 260 }, 12)
+      P.skip(4)
     }
 
     if (invoice.description) {
