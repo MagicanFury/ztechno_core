@@ -137,7 +137,7 @@ export class InvoicesOrm extends ZOrm {
     await this.sqlService.query(/*SQL*/`
       CREATE TABLE IF NOT EXISTS \`${this.alias}\` (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        invoice_number VARCHAR(32) NOT NULL,
+        invoice_number VARCHAR(44) NOT NULL,
         customer_id BIGINT UNSIGNED NOT NULL,
         subscription_id BIGINT UNSIGNED NULL,
         subscription_period_start DATETIME,
