@@ -839,7 +839,7 @@ export class InvoiceService {
         .skip(4).dashedRule(370, 560).skip(8)
 
       P.bold().size(9)
-      P.text('Geschatte Subsidie', 50, {}, 12)
+      P.text('Geschatte Subsidie', 50, { width: 300 }, 12)
       P.normal().size(9)
 
       for (const item of subsidyItems) {
