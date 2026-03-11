@@ -768,7 +768,7 @@ export class InvoiceService {
     const P = {
       y: tableTop + 20,
       skip(n: number)                                                                  { this.y += n; return this },
-      text(text: string, x: number, opts?: Record<string, any>, gap = 12)             { doc.text(text, x, this.y, (opts ?? {}) as any); this.y += gap; return this },
+      text(text: string, x: number, opts?: Record<string, any>, gap = 12)             { const o = (opts ?? {}) as any; const h = doc.heightOfString(text, o); doc.text(text, x, this.y, o); this.y += Math.max(h, gap); return this },
       row(label: string, labelX: number, value: string, valueX: number, gap = 14)     { doc.text(label, labelX, this.y); doc.text(value, valueX, this.y); this.y += gap; return this },
       rule(x1 = 50, x2 = 560)                                                         { doc.moveTo(x1, this.y).lineTo(x2, this.y).stroke(); return this },
       dashedRule(x1: number, x2: number)                                              { doc.moveTo(x1, this.y).lineTo(x2, this.y).lineWidth(0.5).dash(3, { space: 3 }).stroke(); doc.undash().lineWidth(1); return this },
