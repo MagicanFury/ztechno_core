@@ -821,12 +821,12 @@ export class InvoiceService {
 
     // === TOTALS (Dutch law: subtotal, VAT breakdown per rate, subtotal incl. VAT) ===
     P.size(10)
-    P.row('Subtotaal excl. BTW:', 370, this.formatMoney(subtotal, invoice.currency), col5)
+    P.row('Subtotaal excl. BTW:', 290, this.formatMoney(subtotal, invoice.currency), col5)
 
     let totalVat = 0
     for (const [rate, { vat }] of Object.entries(vatByRate)) {
       totalVat += vat
-      P.row(`BTW ${rate}%`, 370, this.formatMoney(vat, invoice.currency), col5)
+      P.row(`BTW ${rate}%`, 290, this.formatMoney(vat, invoice.currency), col5)
     }
 
     const serviceTotalIncVat = subtotal + totalVat
@@ -835,8 +835,8 @@ export class InvoiceService {
     let subsidyTotal = 0
     if (subsidyItems.length > 0) {
       P.bold().size(10)
-      P.row('Totaal incl. BTW:', 370, this.formatMoney(serviceTotalIncVat, invoice.currency), col5)
-        .skip(4).dashedRule(370, 560).skip(8)
+      P.row('Totaal incl. BTW:', 290, this.formatMoney(serviceTotalIncVat, invoice.currency), col5)
+        .skip(4).dashedRule(290, 560).skip(8)
 
       P.bold().size(9)
       P.text('Geschatte Subsidie', 50, { width: 300 }, 12)
@@ -850,7 +850,7 @@ export class InvoiceService {
         P.skip(14)
       }
 
-      P.dashedRule(370, 560).skip(8)
+      P.dashedRule(290, 560).skip(8)
     }
 
     const grandTotal = serviceTotalIncVat + subsidyTotal // subsidyTotal is negative
@@ -860,7 +860,7 @@ export class InvoiceService {
       P.row('Uw Totale Investering incl. Subsidie:', 290, this.formatMoney(grandTotal, invoice.currency), col5, 20)
     } else {
       P.bold()
-      P.row('Totaal incl. BTW:', 370, this.formatMoney(grandTotal, invoice.currency), col5, 20)
+      P.row('Totaal incl. BTW:', 290, this.formatMoney(grandTotal, invoice.currency), col5, 20)
       P.normal()
     }
 
