@@ -38,6 +38,12 @@ export class InvoiceItemsOrm extends ZOrm {
     })
   }
 
+  public async deleteByInvoice(invoice_id: number) {
+    await this.sqlService.query(/*SQL*/`
+      DELETE FROM \`${this.alias}\` WHERE invoice_id=:invoice_id
+    `, { invoice_id })
+  }
+
   public override async createTable(): Promise<void> {
     await this.sqlService.query(/*SQL*/`
       CREATE TABLE IF NOT EXISTS \`${this.alias}\` (

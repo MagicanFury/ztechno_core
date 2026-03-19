@@ -471,6 +471,42 @@ export class InvoiceService {
     return await this.itemsOrm.findByInvoice(invoiceId)
   }
 
+  public async updateInvoice(
+    invoiceId: number,
+    input: Partial<Pick<CreateInvoiceInput, 'customer_id' | 'description' | 'payment_terms' | 'due_date'>> & { items?: CreateInvoiceInput['items'] }
+  ): Promise<ZInvoice> {
+    const invoice = await this.invoicesOrm.findById(invoiceId)
+    if (!invoice) throw new Error(`Invoice ${invoiceId} not found`)
+    if (invoice.status !== 'draft') throw new Error(`Invoice ${invoice.invoice_number} cannot be edited (status: ${invoice.status})`)
+    if ((invoice.times_sent ?? 0) > 0) throw new Error(`Invoice ${invoice.invoice_number} cannot be edited (already sent ${invoice.times_sent} time(s))`)
+
+    const updateFields: Parameters<InvoicesOrm['updateMutableFields']>[1] = {}
+
+    if (input.customer_id !== undefined) {
+      const customer = await this.opt.customerService.findById(input.customer_id)
+      if (!customer) throw new Error(`Customer ${input.customer_id} not found`)
+      updateFields.customer_id = input.customer_id
+      updateFields.mollie_customer_id = customer.mollie_customer_id ?? null
+    }
+    if ('description' in input)    updateFields.description    = input.description    ?? null
+    if ('payment_terms' in input)  updateFields.payment_terms  = input.payment_terms  ?? null
+    if ('due_date' in input)       updateFields.due_date       = input.due_date       ?? null
+
+    if (input.items) {
+      const { items: calcedItems, amount_due } = this.calcTotals(input.items)
+      updateFields.amount_due = amount_due
+      await this.invoicesOrm.updateMutableFields(invoiceId, updateFields)
+      await this.itemsOrm.deleteByInvoice(invoiceId)
+      await this.itemsOrm.bulkInsert(calcedItems.map(it => ({ ...it, invoice_id: invoiceId })))
+    } else {
+      await this.invoicesOrm.updateMutableFields(invoiceId, updateFields)
+    }
+
+    const updated = await this.invoicesOrm.findById(invoiceId)
+    if (!updated) throw new Error(`Invoice ${invoiceId} not found after update`)
+    return updated
+  }
+
   // ==================== Archive ====================
 
   public async archiveInvoice(invoiceId: number) {
