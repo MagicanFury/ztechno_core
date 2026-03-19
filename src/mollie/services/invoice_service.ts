@@ -565,6 +565,7 @@ export class InvoiceService {
     await this.templateOrm.delete(id)
   }
 
+  /** @internal */
   public async createInvoiceWithPayment(input: CreateInvoiceInput) {
     const draft = await this.createInvoiceDraft(input)
     const payment = await this.createMolliePaymentForInvoice(draft.invoice)
@@ -591,7 +592,7 @@ export class InvoiceService {
     const invoice_number = useIdMode
       ? `PENDING-${crypto.randomUUID()}`
       : await this.generateInvoiceNumber()
-    const status = overrides?.status ?? 'pending'
+    const status = overrides?.status ?? 'draft'
     const issuedAt = formatDatetime(new Date())
     const paidAt = overrides?.paid_at ?? (status === 'paid' ? issuedAt : null)
     const amount_paid = overrides?.amount_paid ?? (status === 'paid' ? amount_due : 0)

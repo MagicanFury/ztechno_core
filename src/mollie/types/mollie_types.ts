@@ -25,6 +25,8 @@ export type ZCustomer = {
 
 export type ZInvoiceItemType = 'service' | 'subsidy'
 
+export type ZInvoiceStatus = 'draft'|'pending'|'paid'|'failed'|'canceled'|'expired'|'refunded'|'archived'
+
 export type ZInvoiceItem = {
   id?: number
   invoice_id: number
@@ -59,8 +61,6 @@ export type CreateInvoiceOverrides = {
   mollie_payment_id?: string|null
   checkout_url?: string|null
 }
-
-export type ZInvoiceStatus = 'draft'|'pending'|'paid'|'failed'|'canceled'|'expired'|'refunded'|'archived'
 
 export type ZInvoice = {
   id?: number
