@@ -90,6 +90,15 @@ export class InvoicesOrm extends ZOrm {
     `, { id, status, amount_paid: amount_paid ?? null, paid_at: paid_at ?? null })
   }
 
+  /** Transitions status only if the current DB status matches `fromStatus`. Safe against concurrent updates. */
+  public async updateStatusConditional(id: number, status: ZInvoiceStatus, fromStatus: ZInvoiceStatus) {
+    await this.sqlService.query(/*SQL*/`
+      UPDATE \`${this.alias}\`
+      SET status=:status, updated_at=NOW()
+      WHERE id=:id AND status=:fromStatus
+    `, { id, status, fromStatus })
+  }
+
   public async updatePaymentRef(id: number, payload: { mollie_payment_id?: string|null, checkout_url?: string|null }) {
     await this.sqlService.query(/*SQL*/`
       UPDATE \`${this.alias}\`
