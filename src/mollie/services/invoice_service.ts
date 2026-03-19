@@ -1086,6 +1086,10 @@ export class InvoiceService {
 
     await this.invoicesOrm.incrementTimesSent(invoiceId)
 
+    if (!isReceipt && invoice.status === 'draft') {
+      await this.invoicesOrm.updateStatus(invoiceId, 'pending')
+    }
+
     return {
       invoice_number: invoice.invoice_number,
       recipient: to,
