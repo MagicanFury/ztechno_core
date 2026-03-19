@@ -11,9 +11,9 @@ export class InvoicesOrm extends ZOrm {
   public async create(invoice: Omit<ZInvoice, 'id'|'created_at'|'updated_at'>) {
     const res = await this.sqlService.query(/*SQL*/`
       INSERT INTO \`${this.alias}\`
-        (invoice_number, customer_id, subscription_id, subscription_period_start, subscription_period_end, mollie_customer_id, mollie_payment_id, pay_token_hash, pay_token_expires_at, pay_token_finalized_at, status, amount_due, amount_paid, currency, description, payment_terms, due_date, issued_at, paid_at, checkout_url, metadata)
+        (invoice_number, customer_id, subscription_id, subscription_period_start, subscription_period_end, mollie_customer_id, mollie_payment_id, pay_token_hash, pay_token_expires_at, pay_token_finalized_at, status, amount_due, amount_paid, currency, description, payment_terms, due_date, issued_at, paid_at, checkout_url, times_sent, metadata)
       VALUES
-        (:invoice_number, :customer_id, :subscription_id, :subscription_period_start, :subscription_period_end, :mollie_customer_id, :mollie_payment_id, :pay_token_hash, :pay_token_expires_at, :pay_token_finalized_at, :status, :amount_due, :amount_paid, :currency, :description, :payment_terms, :due_date, :issued_at, :paid_at, :checkout_url, :metadata)
+        (:invoice_number, :customer_id, :subscription_id, :subscription_period_start, :subscription_period_end, :mollie_customer_id, :mollie_payment_id, :pay_token_hash, :pay_token_expires_at, :pay_token_finalized_at, :status, :amount_due, :amount_paid, :currency, :description, :payment_terms, :due_date, :issued_at, :paid_at, :checkout_url, :times_sent, :metadata)
       ON DUPLICATE KEY UPDATE
         subscription_id=VALUES(subscription_id),
         subscription_period_start=VALUES(subscription_period_start),
@@ -33,9 +33,10 @@ export class InvoicesOrm extends ZOrm {
         issued_at=VALUES(issued_at),
         paid_at=VALUES(paid_at),
         checkout_url=VALUES(checkout_url),
+        times_sent=VALUES(times_sent),
         metadata=VALUES(metadata),
         updated_at=NOW()
-    `, invoice)
+    `, { ...invoice, times_sent: invoice.times_sent ?? 0 })
     return res
   }
 
@@ -133,6 +134,14 @@ export class InvoicesOrm extends ZOrm {
     `, { id })
   }
 
+  public async incrementTimesSent(id: number) {
+    await this.sqlService.query(/*SQL*/`
+      UPDATE \`${this.alias}\`
+      SET times_sent = times_sent + 1, updated_at=NOW()
+      WHERE id=:id
+    `, { id })
+  }
+
   public override async createTable(): Promise<void> {
     await this.sqlService.query(/*SQL*/`
       CREATE TABLE IF NOT EXISTS \`${this.alias}\` (
@@ -147,7 +156,7 @@ export class InvoicesOrm extends ZOrm {
         pay_token_hash CHAR(64),
         pay_token_expires_at DATETIME,
         pay_token_finalized_at DATETIME,
-        status ENUM('draft','pending','paid','failed','canceled','expired','refunded') NOT NULL DEFAULT 'draft',
+        status ENUM('draft','pending','paid','failed','canceled','expired','refunded','archived') NOT NULL DEFAULT 'draft',
         amount_due DECIMAL(12,2) NOT NULL,
         amount_paid DECIMAL(12,2) NOT NULL DEFAULT 0,
         currency CHAR(3) NOT NULL DEFAULT 'EUR',
@@ -157,6 +166,7 @@ export class InvoicesOrm extends ZOrm {
         issued_at DATETIME,
         paid_at DATETIME,
         checkout_url VARCHAR(512),
+        times_sent INT NOT NULL DEFAULT 0,
         metadata JSON NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

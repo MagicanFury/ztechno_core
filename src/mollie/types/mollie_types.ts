@@ -60,7 +60,7 @@ export type CreateInvoiceOverrides = {
   checkout_url?: string|null
 }
 
-export type ZInvoiceStatus = 'draft'|'pending'|'paid'|'failed'|'canceled'|'expired'|'refunded'
+export type ZInvoiceStatus = 'draft'|'pending'|'paid'|'failed'|'canceled'|'expired'|'refunded'|'archived'
 
 export type ZInvoice = {
   id?: number
@@ -84,6 +84,7 @@ export type ZInvoice = {
   issued_at?: string|null
   paid_at?: string|null
   checkout_url?: string|null
+  times_sent?: number
   metadata?: any
   created_at?: string|Date
   updated_at?: string|Date
@@ -158,6 +159,21 @@ export type ZSubscription = {
   next_payment_date?: string|null
   canceled_at?: string|null
   metadata?: any
+  created_at?: string|Date
+  updated_at?: string|Date
+}
+
+// ============================== // Invoice item templates
+
+export type ZInvoiceItemTemplate = {
+  id?: number
+  name: string
+  item_type?: ZInvoiceItemType
+  description: string
+  quantity: number
+  unit_price: number
+  vat_rate: number
+  sort_order?: number
   created_at?: string|Date
   updated_at?: string|Date
 }

@@ -3,6 +3,7 @@ import path from "path"
 import fs from "fs"
 import crypto from "crypto"
 import { InvoiceItemsOrm } from "../orm/invoice_items_orm"
+import { InvoiceItemTemplatesOrm } from "../orm/invoice_item_templates_orm"
 import { InvoicePaymentsOrm } from "../orm/invoice_payments_orm"
 import { InvoicesOrm } from "../orm/invoices_orm"
 import { SubscriptionItemsOrm } from "../orm/subscription_items_orm"
@@ -13,13 +14,14 @@ import { ZMailService } from "../../core/mail_service"
 import { MollieService } from "./mollie_service"
 import { ZSQLService } from "../../core/sql_service"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
-import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus, ZIssuedPayToken, ZPayResolveResult, ZSubscription } from "../types/mollie_types"
+import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus, ZIssuedPayToken, ZPayResolveResult, ZSubscription, ZInvoiceItemTemplate } from "../types/mollie_types"
 import { formatDatetime, toDatetime, toDatetimeFromDateOnly } from "../../core/orm/orm"
 
 export class InvoiceService {
   private invoicesOrm: InvoicesOrm
   private itemsOrm: InvoiceItemsOrm
   private paymentsOrm: InvoicePaymentsOrm
+  private templateOrm: InvoiceItemTemplatesOrm
   private subscriptionsOrm: SubscriptionsOrm
   private subscriptionItemsOrm: SubscriptionItemsOrm
   private payTokenSecret = this.opt.payTokenSecret || ''
@@ -35,6 +37,7 @@ export class InvoiceService {
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService })
     this.itemsOrm = new InvoiceItemsOrm({ sqlService: opt.sqlService })
     this.paymentsOrm = new InvoicePaymentsOrm({ sqlService: opt.sqlService })
+    this.templateOrm = new InvoiceItemTemplatesOrm({ sqlService: opt.sqlService })
     this.subscriptionsOrm = new SubscriptionsOrm({ sqlService: opt.sqlService })
     this.subscriptionItemsOrm = new SubscriptionItemsOrm({ sqlService: opt.sqlService })
     this.mailService = opt.mailService
@@ -46,10 +49,13 @@ export class InvoiceService {
     await this.invoicesOrm.ensureTableExists()
     await this.itemsOrm.ensureTableExists()
     await this.paymentsOrm.ensureTableExists()
+    await this.templateOrm.ensureTableExists()
     await this.ensurePayTokenSchema()
     await this.ensureSubscriptionInvoiceSchema()
     await this.ensureInvoicePaymentSchema()
     await this.ensureSubsidyItemTypeSchema()
+    await this.ensureSentCountSchema()
+    await this.ensureArchivedStatusSchema()
   }
 
   private async ensurePayTokenSchema() {
@@ -110,6 +116,29 @@ export class InvoiceService {
     })
     if (!rows?.[0]) {
       await this.opt.sqlService.query(`ALTER TABLE \`${table}\` ADD COLUMN item_type ENUM('service','subsidy') NOT NULL DEFAULT 'service' AFTER invoice_id`)
+    }
+  }
+
+  private async ensureSentCountSchema() {
+    const table = this.invoicesOrm.alias
+    const rows = await this.opt.sqlService.exec<any>({
+      query: `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND COLUMN_NAME='times_sent' LIMIT 1`,
+      params: { schema: this.opt.sqlService.database, tableName: table }
+    })
+    if (!rows?.[0]) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${table}\` ADD COLUMN times_sent INT NOT NULL DEFAULT 0 AFTER checkout_url`)
+    }
+  }
+
+  private async ensureArchivedStatusSchema() {
+    const table = this.invoicesOrm.alias
+    const rows = await this.opt.sqlService.exec<any>({
+      query: `SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND COLUMN_NAME='status' LIMIT 1`,
+      params: { schema: this.opt.sqlService.database, tableName: table }
+    })
+    const colType = rows?.[0]?.COLUMN_TYPE ?? ''
+    if (colType && !colType.includes('archived')) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${table}\` MODIFY COLUMN status ENUM('draft','pending','paid','failed','canceled','expired','refunded','archived') NOT NULL DEFAULT 'draft'`)
     }
   }
 
@@ -436,6 +465,64 @@ export class InvoiceService {
 
   public async listPayments(invoice_id: number): Promise<ZInvoicePayment[]> {
     return await this.paymentsOrm.findByInvoice(invoice_id)
+  }
+
+  // ==================== Archive ====================
+
+  public async archiveInvoice(invoiceId: number) {
+    const invoice = await this.invoicesOrm.findById(invoiceId)
+    if (!invoice) {
+      throw new Error(`Invoice ${invoiceId} not found`)
+    }
+    if (invoice.status === 'paid') {
+      throw new Error(`Cannot archive a paid invoice (${invoice.invoice_number})`)
+    }
+    if (invoice.status === 'archived') {
+      return invoice
+    }
+    await this.invoicesOrm.updateStatus(invoiceId, 'archived')
+    return await this.invoicesOrm.findById(invoiceId)
+  }
+
+  // ==================== Duplicate ====================
+
+  public async duplicateInvoice(sourceInvoiceId: number, customerId: number) {
+    const items = await this.itemsOrm.findByInvoice(sourceInvoiceId)
+    if (items.length === 0) {
+      throw new Error(`Source invoice ${sourceInvoiceId} has no items to duplicate`)
+    }
+    const mappedItems: CreateInvoiceInput['items'] = items.map(it => ({
+      description: it.description,
+      quantity: it.quantity,
+      unit_price: it.unit_price,
+      vat_rate: it.vat_rate,
+      item_type: it.item_type,
+      sort_order: it.sort_order,
+    }))
+    return await this.createInvoiceDraft({ customer_id: customerId, items: mappedItems })
+  }
+
+  // ==================== Item Templates ====================
+
+  public async createItemTemplate(template: Omit<ZInvoiceItemTemplate, 'id'|'created_at'|'updated_at'>) {
+    return await this.templateOrm.create(template)
+  }
+
+  public async listItemTemplates() {
+    return await this.templateOrm.findAll()
+  }
+
+  public async getItemTemplate(id: number) {
+    return await this.templateOrm.findById(id)
+  }
+
+  public async updateItemTemplate(id: number, template: Partial<Omit<ZInvoiceItemTemplate, 'id'|'created_at'|'updated_at'>>) {
+    await this.templateOrm.update(id, template)
+    return await this.templateOrm.findById(id)
+  }
+
+  public async deleteItemTemplate(id: number) {
+    await this.templateOrm.delete(id)
   }
 
   public async createInvoiceWithPayment(input: CreateInvoiceInput) {
@@ -955,6 +1042,8 @@ export class InvoiceService {
         }
       ]
     })
+
+    await this.invoicesOrm.incrementTimesSent(invoiceId)
 
     return {
       invoice_number: invoice.invoice_number,
