@@ -467,6 +467,10 @@ export class InvoiceService {
     return await this.paymentsOrm.findByInvoice(invoice_id)
   }
 
+  public async getInvoiceItems(invoiceId: number): Promise<ZInvoiceItem[]> {
+    return await this.itemsOrm.findByInvoice(invoiceId)
+  }
+
   // ==================== Archive ====================
 
   public async archiveInvoice(invoiceId: number) {
