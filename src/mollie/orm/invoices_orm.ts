@@ -1,11 +1,19 @@
 import { ZOrm } from "../../core/orm/orm"
 import { ZSQLService } from "../../core/sql_service"
-import { ZInvoice, ZInvoiceStatus } from "../types/mollie_types"
+import { ZInvoice, ZInvoiceStatus, ZAuditContext } from "../types/mollie_types"
+import { InvoiceStatusLogOrm } from "./invoice_status_log_orm"
 
 export class InvoicesOrm extends ZOrm {
 
-  constructor(opt: { sqlService: ZSQLService, alias?: string }) {
+  private statusLogOrm?: InvoiceStatusLogOrm
+
+  constructor(opt: { sqlService: ZSQLService, alias?: string, statusLogOrm?: InvoiceStatusLogOrm }) {
     super({ sqlService: opt.sqlService, alias: opt.alias ?? 'mollie_invoices' })
+    this.statusLogOrm = opt.statusLogOrm
+  }
+
+  public setStatusLogOrm(orm: InvoiceStatusLogOrm) {
+    this.statusLogOrm = orm
   }
 
   public async create(invoice: Omit<ZInvoice, 'id'|'created_at'|'updated_at'>) {
@@ -82,21 +90,47 @@ export class InvoicesOrm extends ZOrm {
     return res[0]
   }
 
-  public async updateStatus(id: number, status: ZInvoiceStatus, amount_paid?: number, paid_at?: string|null) {
+  public async updateStatus(id: number, status: ZInvoiceStatus, amount_paid?: number, paid_at?: string|null, audit?: ZAuditContext) {
     await this.sqlService.query(/*SQL*/`
       UPDATE \`${this.alias}\`
       SET status=:status, amount_paid=COALESCE(:amount_paid, amount_paid), paid_at=COALESCE(:paid_at, paid_at), updated_at=NOW()
       WHERE id=:id
     `, { id, status, amount_paid: amount_paid ?? null, paid_at: paid_at ?? null })
+
+    if (this.statusLogOrm && audit) {
+      await this.statusLogOrm.insert({
+        invoice_id: id,
+        from_status: (audit.fromStatus as ZInvoiceStatus) ?? null,
+        to_status: status,
+        actor_type: audit.actorType,
+        mollie_payment_id: audit.molliePaymentId ?? null,
+        note: audit.note ?? null,
+        metadata: audit.metadata ?? null,
+      })
+    }
   }
 
   /** Transitions status only if the current DB status matches `fromStatus`. Safe against concurrent updates. */
-  public async updateStatusConditional(id: number, status: ZInvoiceStatus, fromStatus: ZInvoiceStatus) {
-    await this.sqlService.query(/*SQL*/`
+  public async updateStatusConditional(id: number, status: ZInvoiceStatus, fromStatus: ZInvoiceStatus, audit?: Omit<ZAuditContext, 'fromStatus'>) {
+    const result = await this.sqlService.query(/*SQL*/`
       UPDATE \`${this.alias}\`
       SET status=:status, updated_at=NOW()
       WHERE id=:id AND status=:fromStatus
     `, { id, status, fromStatus })
+
+    const changed = (result as any)?.affectedRows > 0 || (result as any)?.changedRows > 0
+    if (this.statusLogOrm && changed) {
+      await this.statusLogOrm.insert({
+        invoice_id: id,
+        from_status: fromStatus,
+        to_status: status,
+        actor_type: audit?.actorType ?? 'system',
+        mollie_payment_id: audit?.molliePaymentId ?? null,
+        note: audit?.note ?? null,
+        metadata: audit?.metadata ?? null,
+      })
+    }
+    return changed
   }
 
   public async updatePaymentRef(id: number, payload: { mollie_payment_id?: string|null, checkout_url?: string|null }) {

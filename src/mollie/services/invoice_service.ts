@@ -8,7 +8,10 @@ import { InvoicePaymentsOrm } from "../orm/invoice_payments_orm"
 import { InvoicesOrm } from "../orm/invoices_orm"
 import { SubscriptionItemsOrm } from "../orm/subscription_items_orm"
 import { SubscriptionsOrm } from "../orm/subscriptions_orm"
+import { InvoiceStatusLogOrm } from "../orm/invoice_status_log_orm"
+import { PaymentStatusLogOrm } from "../orm/payment_status_log_orm"
 import { CustomerService } from "./customer_service"
+import { InvoiceAuditService } from "./invoice_audit_service"
 import { RenderData } from "../../core/types/site_config"
 import { ZMailService } from "../../core/mail_service"
 import { MollieService } from "./mollie_service"
@@ -24,6 +27,9 @@ export class InvoiceService {
   private templateOrm: InvoiceItemTemplatesOrm
   private subscriptionsOrm: SubscriptionsOrm
   private subscriptionItemsOrm: SubscriptionItemsOrm
+  private invoiceStatusLogOrm: InvoiceStatusLogOrm
+  private paymentStatusLogOrm: PaymentStatusLogOrm
+  private auditService: InvoiceAuditService
   private payTokenSecret = this.opt.payTokenSecret || ''
   private payTokenLifetimeMs = 60 * 24 * 60 * 60 * 1000 
   private mailService: ZMailService
@@ -34,22 +40,33 @@ export class InvoiceService {
   private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
   constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string }) {
-    this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService })
+    this.invoiceStatusLogOrm = new InvoiceStatusLogOrm({ sqlService: opt.sqlService })
+    this.paymentStatusLogOrm = new PaymentStatusLogOrm({ sqlService: opt.sqlService })
+    this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService, statusLogOrm: this.invoiceStatusLogOrm })
     this.itemsOrm = new InvoiceItemsOrm({ sqlService: opt.sqlService })
-    this.paymentsOrm = new InvoicePaymentsOrm({ sqlService: opt.sqlService })
+    this.paymentsOrm = new InvoicePaymentsOrm({ sqlService: opt.sqlService, paymentLogOrm: this.paymentStatusLogOrm })
     this.templateOrm = new InvoiceItemTemplatesOrm({ sqlService: opt.sqlService })
     this.subscriptionsOrm = new SubscriptionsOrm({ sqlService: opt.sqlService })
     this.subscriptionItemsOrm = new SubscriptionItemsOrm({ sqlService: opt.sqlService })
+    this.auditService = new InvoiceAuditService({
+      sqlService: opt.sqlService,
+      invoiceStatusLogOrm: this.invoiceStatusLogOrm,
+      paymentStatusLogOrm: this.paymentStatusLogOrm,
+    })
     this.mailService = opt.mailService
     this.invoiceNumberMode = opt.invoiceNumberMode ?? 'sequence'
     this.invoiceNumberFormat = opt.invoiceNumberFormat ?? ((id: number) => `INV-${id.toString().padStart(6, '0')}`)
   }
+
+  /** Returns the audit service for querying audit logs and timeline */
+  public getAuditService() { return this.auditService }
 
   async autoInit() {
     await this.invoicesOrm.ensureTableExists()
     await this.itemsOrm.ensureTableExists()
     await this.paymentsOrm.ensureTableExists()
     await this.templateOrm.ensureTableExists()
+    await this.auditService.autoInit()
     await this.ensurePayTokenSchema()
     await this.ensureSubscriptionInvoiceSchema()
     await this.ensureInvoicePaymentSchema()
@@ -359,7 +376,7 @@ export class InvoiceService {
       paid_at: toDatetime(payment.paidAt ?? null),
       expires_at: toDatetime(payment.expiresAt as any),
       mandate_id: (payment.mandateId as any) ?? (opt?.mandateId ?? null),
-    })
+    }, { actorType: 'system', note: 'Payment created via Mollie API' })
 
     await this.invoicesOrm.updatePaymentRef(invoice.id!, {
       mollie_payment_id: payment.id,
@@ -520,7 +537,11 @@ export class InvoiceService {
     if (invoice.status === 'archived') {
       return invoice
     }
-    await this.invoicesOrm.updateStatus(invoiceId, 'archived')
+    await this.invoicesOrm.updateStatus(invoiceId, 'archived', undefined, undefined, {
+      fromStatus: invoice.status,
+      actorType: 'admin',
+      note: 'Invoice archived',
+    })
     return await this.invoicesOrm.findById(invoiceId)
   }
 
@@ -638,6 +659,16 @@ export class InvoiceService {
       throw new Error('Failed to persist invoice')
     }
 
+    // Audit log: record initial invoice creation status
+    await this.invoiceStatusLogOrm.insert({
+      invoice_id: savedInvoice.id!,
+      from_status: null,
+      to_status: status,
+      actor_type: 'system',
+      mollie_payment_id: overrides?.mollie_payment_id ?? null,
+      note: 'Invoice created',
+    })
+
     const itemsWithInvoice = items.map(it => ({ ...it, invoice_id: savedInvoice.id! }))
     await this.itemsOrm.bulkInsert(itemsWithInvoice)
 
@@ -738,7 +769,7 @@ export class InvoiceService {
       paid_at: toDatetime(payment.paidAt ?? null),
       expires_at: toDatetime(payment.expiresAt as any),
       mandate_id: (payment.mandateId as any) ?? null,
-    })
+    }, { actorType: 'webhook', note: 'Synced from Mollie webhook' })
 
     await this.invoicesOrm.updatePaymentRef(invoice.id!, {
       mollie_payment_id: payment.id,
@@ -746,7 +777,12 @@ export class InvoiceService {
     })
 
     const previousStatus = invoice.status
-    await this.invoicesOrm.updateStatus(invoice.id!, mappedStatus as ZInvoiceStatus, paidAmount, paidAt)
+    await this.invoicesOrm.updateStatus(invoice.id!, mappedStatus as ZInvoiceStatus, paidAmount, paidAt, {
+      fromStatus: previousStatus,
+      actorType: 'webhook',
+      molliePaymentId: payment.id,
+      note: `Synced from Mollie webhook (mollie status: ${payment.status})`,
+    })
     if (mappedStatus === 'paid') {
       await this.invoicesOrm.finalizePayToken(invoice.id!)
     }
@@ -1087,7 +1123,10 @@ export class InvoiceService {
     await this.invoicesOrm.incrementTimesSent(invoiceId)
 
     if (!isReceipt) {
-      await this.invoicesOrm.updateStatusConditional(invoiceId, 'pending', 'draft')
+      await this.invoicesOrm.updateStatusConditional(invoiceId, 'pending', 'draft', {
+        actorType: 'system',
+        note: 'Status set to pending after invoice email sent',
+      })
     }
 
     return {

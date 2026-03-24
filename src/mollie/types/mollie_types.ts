@@ -190,6 +190,54 @@ export type ZPayResolveResult =
   | { action: 'redirect', checkoutUrl: string, invoice: ZInvoice }
   | { action: 'paid', invoice: ZInvoice }
 
+// ============================== // Audit / Status Logs
+
+export type ZAuditActorType = 'webhook' | 'system' | 'admin'
+
+export type ZInvoiceStatusLogEntry = {
+  id?: number
+  invoice_id: number
+  from_status: ZInvoiceStatus | null
+  to_status: ZInvoiceStatus
+  actor_type: ZAuditActorType
+  mollie_payment_id?: string | null
+  note?: string | null
+  metadata?: any
+  created_at?: string | Date
+}
+
+export type ZPaymentStatusLogEntry = {
+  id?: number
+  payment_id: number
+  invoice_id: number
+  mollie_payment_id: string
+  from_status: ZInvoicePaymentStatus | null
+  to_status: ZInvoicePaymentStatus
+  actor_type: ZAuditActorType
+  note?: string | null
+  metadata?: any
+  created_at?: string | Date
+}
+
+export type ZInvoiceTimelineEvent = {
+  event_type: 'invoice_status' | 'payment_status'
+  from_status: string | null
+  to_status: string
+  actor_type: ZAuditActorType
+  mollie_payment_id?: string | null
+  note?: string | null
+  metadata?: any
+  created_at: string | Date
+}
+
+export type ZAuditContext = {
+  fromStatus?: string | null
+  actorType: ZAuditActorType
+  molliePaymentId?: string | null
+  note?: string | null
+  metadata?: any
+}
+
 // ============================== // Recovery
 
 export type RecoveryStats = {

@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.0.131] - 2026-03-24
+
+### Added
+- **Payment audit trail**: every invoice and payment status transition is now persisted
+- New `mollie_invoice_status_log` table tracking invoice status changes with actor attribution
+- New `mollie_payment_status_log` table tracking payment status changes per Mollie payment
+- `InvoiceStatusLogOrm` and `PaymentStatusLogOrm` ORM classes
+- `InvoiceAuditService` with timeline/history query API:
+  - `getInvoiceTimeline(invoiceId)` — unified chronological view of all status events
+  - `getInvoiceStatusHistory(invoiceId)` — invoice-level transitions
+  - `getPaymentStatusHistory(invoiceId)` — payment-level transitions
+  - `getPaymentHistory(molliePaymentId)` — single payment transitions
+  - `backfillAuditLog()` — one-time backfill from existing data
+- `InvoiceService.getAuditService()` accessor
+- `ZAuditActorType`, `ZAuditContext`, `ZInvoiceStatusLogEntry`, `ZPaymentStatusLogEntry`, `ZInvoiceTimelineEvent` types
+- Audit context (`actor_type`, `note`, `mollie_payment_id`) on all status mutation paths:
+  invoice creation, webhook sync, archive, email send, and payment creation
+- Audit log tables are auto-created via `autoInit()`
+
+---
+
+## [0.0.130] - 2026-03-19
+
+### Added
+- `updateStatusConditional()` on `InvoicesOrm` — conditional status update to prevent concurrent modifications
+
+### Fixed
+- Invoice status now transitions from `draft` to `pending` when sending invoice emails
+
+---
+
+## [0.0.129] - 2026-03-19
+
+### Fixed
+- Set default invoice status to `draft` on creation
+
+---
+
+## [0.0.128] - 2026-03-19
+
+### Added
+- `deleteByInvoice()` method on `InvoiceItemsOrm`
+- `updateInvoice()` method on `InvoiceService` for editing draft invoices (customer, description, payment terms, due date, line items)
+
+---
+
+## [0.0.127] - 2026-03-19
+
+### Added
+- `InvoiceItemTemplatesOrm` for reusable invoice line item templates, integrated with `InvoiceService`
+- `InvoiceService.getInvoiceItems(invoiceId)` method
+- `CHANGELOG.md`
+
+---
+
 ## [0.0.126] - 2026-03-11
 
 ### Fixed
