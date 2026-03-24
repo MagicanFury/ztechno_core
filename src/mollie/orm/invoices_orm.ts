@@ -185,6 +185,26 @@ export class InvoicesOrm extends ZOrm {
     `, { id })
   }
 
+  public async setArchivedAt(id: number) {
+    await this.sqlService.query(/*SQL*/`
+      UPDATE \`${this.alias}\`
+      SET archived_at=NOW(), updated_at=NOW()
+      WHERE id=:id
+    `, { id })
+  }
+
+  public async clearArchivedAt(id: number) {
+    await this.sqlService.query(/*SQL*/`
+      UPDATE \`${this.alias}\`
+      SET archived_at=NULL, updated_at=NOW()
+      WHERE id=:id
+    `, { id })
+  }
+
+  public isArchived(invoice: ZInvoice) {
+    return invoice.archived_at != null
+  }
+
   public async updateMutableFields(id: number, fields: {
     customer_id?: number
     mollie_customer_id?: string | null
@@ -222,7 +242,7 @@ export class InvoicesOrm extends ZOrm {
         pay_token_hash CHAR(64),
         pay_token_expires_at DATETIME,
         pay_token_finalized_at DATETIME,
-        status ENUM('draft','pending','paid','failed','canceled','expired','refunded','archived') NOT NULL DEFAULT 'draft',
+        status ENUM('draft','pending','paid','failed','canceled','expired','refunded') NOT NULL DEFAULT 'draft',
         amount_due DECIMAL(12,2) NOT NULL,
         amount_paid DECIMAL(12,2) NOT NULL DEFAULT 0,
         currency CHAR(3) NOT NULL DEFAULT 'EUR',
@@ -233,6 +253,7 @@ export class InvoicesOrm extends ZOrm {
         paid_at DATETIME,
         checkout_url VARCHAR(512),
         times_sent INT NOT NULL DEFAULT 0,
+        archived_at DATETIME NULL,
         metadata JSON NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

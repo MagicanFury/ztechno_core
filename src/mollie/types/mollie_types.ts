@@ -25,7 +25,7 @@ export type ZCustomer = {
 
 export type ZInvoiceItemType = 'service' | 'subsidy'
 
-export type ZInvoiceStatus = 'draft'|'pending'|'paid'|'failed'|'canceled'|'expired'|'refunded'|'archived'
+export type ZInvoiceStatus = 'draft'|'pending'|'paid'|'failed'|'canceled'|'expired'|'refunded'
 
 export type ZInvoiceItem = {
   id?: number
@@ -85,6 +85,7 @@ export type ZInvoice = {
   paid_at?: string|null
   checkout_url?: string|null
   times_sent?: number
+  archived_at?: string|null
   metadata?: any
   created_at?: string|Date
   updated_at?: string|Date

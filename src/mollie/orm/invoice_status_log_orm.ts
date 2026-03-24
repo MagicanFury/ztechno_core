@@ -37,8 +37,8 @@ export class InvoiceStatusLogOrm extends ZOrm {
       CREATE TABLE IF NOT EXISTS \`${this.alias}\` (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         invoice_id BIGINT UNSIGNED NOT NULL,
-        from_status ENUM('draft','pending','paid','failed','canceled','expired','refunded','archived') NULL,
-        to_status ENUM('draft','pending','paid','failed','canceled','expired','refunded','archived') NOT NULL,
+        from_status ENUM('draft','pending','paid','failed','canceled','expired','refunded') NULL,
+        to_status ENUM('draft','pending','paid','failed','canceled','expired','refunded') NOT NULL,
         actor_type ENUM('webhook','system','admin') NOT NULL,
         mollie_payment_id VARCHAR(64) NULL,
         note VARCHAR(512) NULL,

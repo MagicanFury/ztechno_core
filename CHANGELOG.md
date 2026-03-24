@@ -19,6 +19,13 @@
   invoice creation, webhook sync, archive, email send, and payment creation
 - Audit log tables are auto-created via `autoInit()`
 
+### Changed
+- **Breaking**: `archived` removed from `ZInvoiceStatus` ENUM — archive state is now tracked via a separate `archived_at DATETIME` column on `mollie_invoices`, preventing Mollie webhooks from overwriting the archived flag
+- `archiveInvoice()` now sets `archived_at` timestamp instead of changing `status`
+- Added `unarchiveInvoice()` method to `InvoiceService`
+- `updateInvoice()` now rejects archived invoices
+- Migration `ensureArchivedAtSchema()` adds the `archived_at` column (replaces old `ensureArchivedStatusSchema`)
+
 ---
 
 ## [0.0.130] - 2026-03-19

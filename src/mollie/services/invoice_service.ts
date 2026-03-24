@@ -72,7 +72,7 @@ export class InvoiceService {
     await this.ensureInvoicePaymentSchema()
     await this.ensureSubsidyItemTypeSchema()
     await this.ensureSentCountSchema()
-    await this.ensureArchivedStatusSchema()
+    await this.ensureArchivedAtSchema()
   }
 
   private async ensurePayTokenSchema() {
@@ -147,15 +147,14 @@ export class InvoiceService {
     }
   }
 
-  private async ensureArchivedStatusSchema() {
+  private async ensureArchivedAtSchema() {
     const table = this.invoicesOrm.alias
     const rows = await this.opt.sqlService.exec<any>({
-      query: `SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND COLUMN_NAME='status' LIMIT 1`,
+      query: `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND COLUMN_NAME='archived_at' LIMIT 1`,
       params: { schema: this.opt.sqlService.database, tableName: table }
     })
-    const colType = rows?.[0]?.COLUMN_TYPE ?? ''
-    if (colType && !colType.includes('archived')) {
-      await this.opt.sqlService.query(`ALTER TABLE \`${table}\` MODIFY COLUMN status ENUM('draft','pending','paid','failed','canceled','expired','refunded','archived') NOT NULL DEFAULT 'draft'`)
+    if (!rows?.[0]) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${table}\` ADD COLUMN archived_at DATETIME NULL AFTER times_sent`)
     }
   }
 
@@ -495,6 +494,7 @@ export class InvoiceService {
     const invoice = await this.invoicesOrm.findById(invoiceId)
     if (!invoice) throw new Error(`Invoice ${invoiceId} not found`)
     if (invoice.status !== 'draft') throw new Error(`Invoice ${invoice.invoice_number} cannot be edited (status: ${invoice.status})`)
+    if (this.invoicesOrm.isArchived(invoice)) throw new Error(`Invoice ${invoice.invoice_number} cannot be edited (archived)`)
     if ((invoice.times_sent ?? 0) > 0) throw new Error(`Invoice ${invoice.invoice_number} cannot be edited (already sent ${invoice.times_sent} time(s))`)
 
     const updateFields: Parameters<InvoicesOrm['updateMutableFields']>[1] = {}
@@ -531,17 +531,42 @@ export class InvoiceService {
     if (!invoice) {
       throw new Error(`Invoice ${invoiceId} not found`)
     }
-    if (invoice.status === 'paid') {
-      throw new Error(`Cannot archive a paid invoice (${invoice.invoice_number})`)
-    }
-    if (invoice.status === 'archived') {
+    if (this.invoicesOrm.isArchived(invoice)) {
       return invoice
     }
-    await this.invoicesOrm.updateStatus(invoiceId, 'archived', undefined, undefined, {
-      fromStatus: invoice.status,
-      actorType: 'admin',
-      note: 'Invoice archived',
+    await this.invoicesOrm.setArchivedAt(invoiceId)
+
+    // Audit log: record archive event
+    await this.invoiceStatusLogOrm.insert({
+      invoice_id: invoiceId,
+      from_status: invoice.status,
+      to_status: invoice.status,
+      actor_type: 'admin',
+      note: 'Invoice archived (archived_at set)',
     })
+
+    return await this.invoicesOrm.findById(invoiceId)
+  }
+
+  public async unarchiveInvoice(invoiceId: number) {
+    const invoice = await this.invoicesOrm.findById(invoiceId)
+    if (!invoice) {
+      throw new Error(`Invoice ${invoiceId} not found`)
+    }
+    if (!this.invoicesOrm.isArchived(invoice)) {
+      return invoice
+    }
+    await this.invoicesOrm.clearArchivedAt(invoiceId)
+
+    // Audit log: record unarchive event
+    await this.invoiceStatusLogOrm.insert({
+      invoice_id: invoiceId,
+      from_status: invoice.status,
+      to_status: invoice.status,
+      actor_type: 'admin',
+      note: 'Invoice unarchived (archived_at cleared)',
+    })
+
     return await this.invoicesOrm.findById(invoiceId)
   }
 
