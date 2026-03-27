@@ -1003,7 +1003,7 @@ export class InvoiceService {
       P.size(9)
       doc.text(item.description, col1, P.y, { width: 225 })
       doc.text(`${vatRate.toFixed(0)}%`, col2, P.y)
-      doc.text(`X ${item.quantity}`, col3, P.y)
+      doc.text(`× ${item.quantity}`, col3, P.y)
       if (!hideProductPrice) {
         doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), col4, P.y)
         doc.text(this.formatMoney(lineSubtotal, invoice.currency), col5, P.y)
