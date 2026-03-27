@@ -39,7 +39,7 @@ export class InvoiceService {
   private get config() { return this.opt.siteConfig }
   private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
-  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string }) {
+  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string, hideProductPrice?: boolean }) {
     this.invoiceStatusLogOrm = new InvoiceStatusLogOrm({ sqlService: opt.sqlService })
     this.paymentStatusLogOrm = new PaymentStatusLogOrm({ sqlService: opt.sqlService })
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService, statusLogOrm: this.invoiceStatusLogOrm })
@@ -901,6 +901,7 @@ export class InvoiceService {
     }
 
     const cfg = this.opt.siteConfig
+    const {hideProductPrice} = this.opt
 
     // === SUPPLIER INFORMATION (right-aligned, Dutch law: name, address, BTW, KVK) ===
     const rightCol = 320
@@ -959,9 +960,13 @@ export class InvoiceService {
 
     doc.fontSize(9).font('Helvetica-Bold')
     doc.text('Product / Dienst', col1, tableTop)
-    doc.text('Aantal', col2, tableTop)
+    if (!hideProductPrice) {
+      doc.text('Aantal', col2, tableTop)
+    }
     doc.text('BTW %', col3, tableTop)
-    doc.text('Prijs excl.', col4, tableTop)
+    if (!hideProductPrice) {
+      doc.text('Prijs excl.', col4, tableTop)
+    }
     doc.text('Totaal excl.', col5, tableTop)
     doc.font('Helvetica')
 
@@ -999,9 +1004,13 @@ export class InvoiceService {
 
       P.size(9)
       doc.text(item.description, col1, P.y, { width: 225 })
-      doc.text(String(item.quantity), col2, P.y)
+      if (!hideProductPrice) {
+        doc.text(String(item.quantity), col2, P.y)
+      }
       doc.text(`${vatRate.toFixed(0)}%`, col3, P.y)
-      doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), col4, P.y)
+      if (!hideProductPrice) {
+        doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), col4, P.y)
+      }
       doc.text(this.formatMoney(lineSubtotal, invoice.currency), col5, P.y)
       P.skip(16)
     }
