@@ -953,21 +953,19 @@ export class InvoiceService {
     // === LINE ITEMS TABLE (Dutch law: description, quantity, unit price excl. VAT, VAT rate, total) ===
     const tableTop = doc.y
     const col1 = 50   // Description
-    const col2 = 280  // Qty
-    const col3 = 330  // VAT %
+    const col2 = 280  // VAT %
+    const col3 = 330  // Qty
     const col4 = 390  // Unit price (excl. VAT)
     const col5 = 480  // Total Ex. VAT
 
     doc.fontSize(9).font('Helvetica-Bold')
     doc.text('Product / Dienst', col1, tableTop)
-    if (!hideProductPrice) {
-      doc.text('Aantal', col2, tableTop)
-    }
-    doc.text('BTW %', col3, tableTop)
+    doc.text('BTW %', col2, tableTop)
+    doc.text('Aantal', col3, tableTop)
     if (!hideProductPrice) {
       doc.text('Prijs excl.', col4, tableTop)
+      doc.text('Totaal excl.', col5, tableTop)
     }
-    doc.text('Totaal excl.', col5, tableTop)
     doc.font('Helvetica')
 
     doc.moveTo(50, tableTop + 14).lineTo(560, tableTop + 14).stroke()
@@ -1004,14 +1002,12 @@ export class InvoiceService {
 
       P.size(9)
       doc.text(item.description, col1, P.y, { width: 225 })
-      if (!hideProductPrice) {
-        doc.text(String(item.quantity), col2, P.y)
-      }
-      doc.text(`${vatRate.toFixed(0)}%`, col3, P.y)
+      doc.text(`${vatRate.toFixed(0)}%`, col2, P.y)
+      doc.text(String(item.quantity), col3, P.y)
       if (!hideProductPrice) {
         doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), col4, P.y)
+        doc.text(this.formatMoney(lineSubtotal, invoice.currency), col5, P.y)
       }
-      doc.text(this.formatMoney(lineSubtotal, invoice.currency), col5, P.y)
       P.skip(16)
     }
 
