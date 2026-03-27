@@ -1,6 +1,31 @@
 # Changelog
 
-## [0.0.131] - 2026-03-24
+## [0.0.135] - 2026-03-27
+
+### Fixed
+- Corrected column order in invoice PDF: BTW % now appears before Aantal
+
+---
+
+## [0.0.134] - 2026-03-27
+
+### Added
+- `hideProductPrice` option on `InvoiceService` constructor — when enabled, hides unit price and line total columns from the invoice PDF
+
+---
+
+## [0.0.133] - 2026-03-24
+
+### Changed
+- **Breaking**: `archived` removed from `ZInvoiceStatus` ENUM — archive state is now tracked via a separate `archived_at DATETIME` column on `mollie_invoices`, preventing Mollie webhooks from overwriting the archived flag
+- `archiveInvoice()` now sets `archived_at` timestamp instead of changing `status`
+- Added `unarchiveInvoice()` method to `InvoiceService`
+- `updateInvoice()` now rejects archived invoices
+- Migration `ensureArchivedAtSchema()` adds the `archived_at` column (replaces old `ensureArchivedStatusSchema`)
+
+---
+
+## [0.0.132] - 2026-03-24
 
 ### Added
 - **Payment audit trail**: every invoice and payment status transition is now persisted
@@ -19,22 +44,19 @@
   invoice creation, webhook sync, archive, email send, and payment creation
 - Audit log tables are auto-created via `autoInit()`
 
-### Changed
-- **Breaking**: `archived` removed from `ZInvoiceStatus` ENUM — archive state is now tracked via a separate `archived_at DATETIME` column on `mollie_invoices`, preventing Mollie webhooks from overwriting the archived flag
-- `archiveInvoice()` now sets `archived_at` timestamp instead of changing `status`
-- Added `unarchiveInvoice()` method to `InvoiceService`
-- `updateInvoice()` now rejects archived invoices
-- Migration `ensureArchivedAtSchema()` adds the `archived_at` column (replaces old `ensureArchivedStatusSchema`)
-
 ---
 
-## [0.0.130] - 2026-03-19
+## [0.0.131] - 2026-03-24
 
 ### Added
 - `updateStatusConditional()` on `InvoicesOrm` — conditional status update to prevent concurrent modifications
 
 ### Fixed
 - Invoice status now transitions from `draft` to `pending` when sending invoice emails
+
+---
+
+## [0.0.130] - 2026-03-19
 
 ---
 

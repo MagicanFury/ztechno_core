@@ -954,7 +954,7 @@ export class InvoiceService {
     const tableTop = doc.y
     const col1 = 50   // Description
     const col2 = 280  // VAT %
-    const col3 = 330  // Qty
+    const col3 = hideProductPrice ? 480 : 330  // Qty (wider spacing when price cols hidden)
     const col4 = 390  // Unit price (excl. VAT)
     const col5 = 480  // Total Ex. VAT
 
@@ -1003,7 +1003,7 @@ export class InvoiceService {
       P.size(9)
       doc.text(item.description, col1, P.y, { width: 225 })
       doc.text(`${vatRate.toFixed(0)}%`, col2, P.y)
-      doc.text(String(item.quantity), col3, P.y)
+      doc.text(`X ${item.quantity}`, col3, P.y)
       if (!hideProductPrice) {
         doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), col4, P.y)
         doc.text(this.formatMoney(lineSubtotal, invoice.currency), col5, P.y)
