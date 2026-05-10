@@ -1,11 +1,17 @@
 // Services
 export { ZEngineBase } from './engine_base'
 export { ZCryptoService } from './crypto_service'
+export { ZIndexNowService } from './indexnow_service'
 export { ZMailService } from './mail_service'
 export { ZSQLService } from './sql_service'
 export type { ZSQLOptions, ZTransaction } from './sql_service'
 export { ZTranslateService } from './translate_service'
 export { ZUserService } from './user_service'
+export type {
+	IndexNowResult,
+	IndexNowRouteLink,
+	IndexNowServiceOptions,
+} from './indexnow_service'
 
 // Types
 export * from './types/crypto_types'

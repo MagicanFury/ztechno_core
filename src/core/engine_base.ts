@@ -1,11 +1,13 @@
 import { ZMailService } from "./mail_service"
 import { ZSQLService } from "./sql_service"
 import { ZTranslateService } from "./translate_service"
+import { ZIndexNowService } from "./indexnow_service"
 import { ZUserService } from "./user_service"
 
 export class ZEngineBase {
 
   public static mailService?: ZMailService
+  public static indexNowService?: ZIndexNowService
   public static sqlService?: ZSQLService
   public static translateService?: ZTranslateService
   public static userService?: ZUserService

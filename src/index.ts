@@ -2,12 +2,19 @@
 export {
   ZEngineBase,
   ZCryptoService,
+  ZIndexNowService,
   ZMailService,
   ZSQLService,
   ZTranslateService,
   ZUserService,
   ZOrm,
   ZMailBlacklistOrm,
+} from './core'
+
+export type {
+  IndexNowResult,
+  IndexNowRouteLink,
+  IndexNowServiceOptions,
 } from './core'
 
 // Core types
