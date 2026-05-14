@@ -275,7 +275,9 @@ export class InvoiceService {
       // Subsidy items are VAT-exempt gross deductions (vat_rate forced to 0)
       const effectiveVatRate = itemType === 'subsidy' ? 0 : Number(item.vat_rate || 0)
       const total_inc_vat = total_ex_vat * (1 + effectiveVatRate / 100)
-      amount_due += total_inc_vat
+      if (item.item_type !== 'subsidy') {
+        amount_due += total_inc_vat
+      }
       return {
         invoice_id: 0,
         item_type: itemType,
