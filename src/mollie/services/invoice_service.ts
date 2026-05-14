@@ -339,16 +339,20 @@ export class InvoiceService {
     if (invoice.due_date) {
       metadata.due_date = invoice.due_date
     }
-    // Store line items for recovery
+    // Store line items for recovery (omitted if metadata would exceed Mollie's 1024-byte limit)
     const invoiceItems = await this.itemsOrm.findByInvoice(invoice.id!)
     if (invoiceItems.length > 0) {
-      metadata.items = invoiceItems.map(it => ({
+      const candidateItems = invoiceItems.map(it => ({
         d: it.description,
         q: it.quantity,
         u: it.unit_price,
         v: it.vat_rate,
         t: it.item_type ?? 'service',
       }))
+      const withItems = { ...metadata, items: candidateItems }
+      if (Buffer.byteLength(JSON.stringify(withItems), 'utf8') <= 1024) {
+        metadata.items = candidateItems
+      }
     }
 
     const payment = await this.opt.mollieService.createPayment({
