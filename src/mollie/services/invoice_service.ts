@@ -488,7 +488,7 @@ export class InvoiceService {
 
   public async updateInvoice(
     invoiceId: number,
-    input: Partial<Pick<CreateInvoiceInput, 'customer_id' | 'description' | 'payment_terms' | 'due_date'>> & { items?: CreateInvoiceInput['items'] }
+    input: Partial<Pick<CreateInvoiceInput, 'customer_id' | 'description' | 'payment_terms' | 'due_date' | 'hide_product_price'>> & { items?: CreateInvoiceInput['items'] }
   ): Promise<ZInvoice> {
     const invoice = await this.invoicesOrm.findById(invoiceId)
     if (!invoice) throw new Error(`Invoice ${invoiceId} not found`)
@@ -507,7 +507,7 @@ export class InvoiceService {
     if ('description' in input)    updateFields.description    = input.description    ?? null
     if ('payment_terms' in input)  updateFields.payment_terms  = input.payment_terms  ?? null
     if ('due_date' in input)       updateFields.due_date       = input.due_date       ?? null
-
+    if ('hide_product_price' in input) updateFields.hide_product_price = input.hide_product_price ?? true
     if (input.items) {
       const { items: calcedItems, amount_due } = this.calcTotals(input.items)
       updateFields.amount_due = amount_due

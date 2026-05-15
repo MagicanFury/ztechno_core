@@ -212,6 +212,7 @@ export class InvoicesOrm extends ZOrm {
     description?: string | null
     payment_terms?: string | null
     due_date?: string | null
+    hide_product_price?: boolean
     amount_due?: number
   }) {
     const sets: string[] = []
@@ -222,6 +223,7 @@ export class InvoicesOrm extends ZOrm {
     if (fields.description !== undefined)        { sets.push('description=:description');              params.description = fields.description }
     if (fields.payment_terms !== undefined)      { sets.push('payment_terms=:payment_terms');          params.payment_terms = fields.payment_terms }
     if (fields.due_date !== undefined)           { sets.push('due_date=:due_date');                    params.due_date = fields.due_date }
+    if (fields.hide_product_price !== undefined) { sets.push('hide_product_price=:hide_product_price'); params.hide_product_price = fields.hide_product_price }
     if (fields.amount_due !== undefined)         { sets.push('amount_due=:amount_due');                params.amount_due = fields.amount_due }
 
     if (sets.length === 0) return
