@@ -1,6 +1,3 @@
-import PDFDocument from "pdfkit"
-import path from "path"
-import fs from "fs"
 import crypto from "crypto"
 import { InvoiceItemsOrm } from "../orm/invoice_items_orm"
 import { InvoiceItemTemplatesOrm } from "../orm/invoice_item_templates_orm"
@@ -12,6 +9,7 @@ import { InvoiceStatusLogOrm } from "../orm/invoice_status_log_orm"
 import { PaymentStatusLogOrm } from "../orm/payment_status_log_orm"
 import { CustomerService } from "./customer_service"
 import { InvoiceAuditService } from "./invoice_audit_service"
+import { InvoicePdfRenderer } from "./invoice_pdf_renderer"
 import { RenderData } from "../../core/types/site_config"
 import { ZMailService } from "../../core/mail_service"
 import { MollieService } from "./mollie_service"
@@ -260,11 +258,6 @@ export class InvoiceService {
       throw new Error(`Customer ${invoice.customer_id} not found`)
     }
     return { invoice, items, customer }
-  }
-
-  private formatMoney(value: number, currency: string) {
-    const symbol = currency === 'EUR' ? '€' : currency
-    return `${symbol} ${value.toFixed(2)}`
   }
 
   private calcTotals(items: CreateInvoiceInput['items']) {
@@ -890,229 +883,11 @@ export class InvoiceService {
 
   public async generateInvoicePdfBuffer(invoiceId: number): Promise<Buffer> {
     const { invoice, items, customer } = await this.getInvoiceBundle(invoiceId)
-    const doc = new PDFDocument({ size: 'A4', margin: 50 })
-    const buffers: Uint8Array[] = []
-    doc.on('data', (chunk) => buffers.push(chunk))
-
-    const done = new Promise<Buffer>((resolve, reject) => {
-      doc.on('end', () => resolve(Buffer.concat(buffers)))
-      doc.on('error', reject)
+    const renderer = new InvoicePdfRenderer({
+      siteConfig: this.opt.siteConfig,
+      hideProductPrice: this.opt.hideProductPrice,
     })
-
-    // === COMPANY LOGO (left-aligned) ===
-    const logoPath = path.join(process.cwd(), '../zwebsite/public/img/invoice/invoice-logo.png')
-    const certPath = path.join(process.cwd(), '../zwebsite/public/img/invoice/invoice-certificates.png')
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 50, 50, { width: 150 }) // Left side of A4 page
-    }
-
-    const cfg = this.opt.siteConfig
-    const {hideProductPrice} = this.opt
-
-    // === SUPPLIER INFORMATION (right-aligned, Dutch law: name, address, BTW, KVK) ===
-    const rightCol = 320
-    doc.fontSize(18).text(cfg.company.company, rightCol, 50, { width: 230, align: 'right' })
-    doc.fontSize(10).text(cfg.address.street, rightCol, doc.y, { width: 230, align: 'right' })
-    doc.text(`${cfg.address.zipcode} ${cfg.address.city}`, rightCol, doc.y, { width: 230, align: 'right' })
-    doc.text(cfg.address.country, rightCol, doc.y, { width: 230, align: 'right' })
-    // doc.text(`Tel: ${cfg.contact.phone}`, rightCol, doc.y, { width: 230, align: 'right' })
-    doc.moveDown(0.5)
-    doc.text(`KVK ${cfg.company.kvk}`, rightCol, doc.y, { width: 230, align: 'right' })
-    doc.text(`${cfg.company.btwNr}`, rightCol, doc.y, { width: 230, align: 'right' })
-    doc.moveDown()
-
-
-    // === CUSTOMER INFORMATION (left-aligned, Dutch law: name, address; B2B: BTW-nummer) ===
-    
-    doc.fontSize(18).text(customer.company || '', 50, doc.y)
-    doc.fontSize(10).text(customer.name, 50)
-    if (customer.address_line1) doc.text(customer.address_line1, 50)
-    if (customer.address_line2) doc.text(customer.address_line2, 50)
-    if (customer.postal_code || customer.city) {
-      doc.text(`${customer.postal_code || ''} ${customer.city || ''}`.trim(), 50)
-    }
-    if (customer.country) doc.text(customer.country === 'NL' ? 'Nederland' : customer.country, 50)
-    // doc.text(`Email: ${customer.email}`, 50)
-    // if (customer.phone) doc.text(`Tel: ${customer.phone}`, 50)
-    if (customer.btw_nummer) doc.text(`${customer.btw_nummer}`, 50)
-    doc.moveDown()
-
-    // === INVOICE HEADER (two-column layout like reference) ===
-    const headerY = doc.y + 10
-    
-    // Left side: Invoice number
-    doc.fontSize(14).font('Helvetica-Bold').text(`Factuur ${invoice.invoice_number}`, 50, headerY)
-    
-    // Right side: Date and due date
-    const issuedDate = invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'
-    const dueDate = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : null
-    
-    doc.fontSize(12).font('Helvetica-Bold').text(issuedDate, rightCol, headerY, { width: 230, align: 'right' })
-    if (dueDate) {
-      doc.fontSize(10).font('Helvetica').text(`Vervaldatum: ${dueDate}`, rightCol, headerY + 16, { width: 230, align: 'right' })
-    }
-    
-    doc.font('Helvetica')
-    doc.y = headerY + 30
-    doc.moveDown()
-
-    // === LINE ITEMS TABLE (Dutch law: description, quantity, unit price excl. VAT, VAT rate, total) ===
-    const tableTop = doc.y
-    const col1 = 50   // Description
-    const col2 = 280  // VAT %
-    const col3 = hideProductPrice ? 480 : 330  // Qty (wider spacing when price cols hidden)
-    const col4 = 390  // Unit price (excl. VAT)
-    const col5 = 480  // Total Ex. VAT
-
-    doc.fontSize(9).font('Helvetica-Bold')
-    doc.text('Product / Dienst', col1, tableTop)
-    doc.text('BTW %', col2, tableTop)
-    doc.text('Aantal', col3, tableTop)
-    if (!hideProductPrice) {
-      doc.text('Prijs excl.', col4, tableTop)
-      doc.text('Totaal excl.', col5, tableTop)
-    }
-    doc.font('Helvetica')
-
-    doc.moveTo(50, tableTop + 14).lineTo(560, tableTop + 14).stroke()
-
-    // Split items: service items go in the main table, subsidy items in a separate section
-    const serviceItems = items.filter(it => (it.item_type ?? 'service') === 'service')
-    const subsidyItems = items.filter(it => it.item_type === 'subsidy')
-
-    // Pen helper: tracks vertical cursor, writes text and advances by gap, draws rules
-    const P = {
-      y: tableTop + 20,
-      skip(n: number)                                                                  { this.y += n; return this },
-      text(text: string, x: number, opts?: Record<string, any>, gap = 12)             { const o = (opts ?? {}) as any; const h = doc.heightOfString(text, o); doc.text(text, x, this.y, o); this.y += Math.max(h, gap); return this },
-      row(label: string, labelX: number, value: string, valueX: number, gap = 14)     { doc.text(label, labelX, this.y); doc.text(value, valueX, this.y); this.y += gap; return this },
-      rule(x1 = 50, x2 = 560)                                                         { doc.moveTo(x1, this.y).lineTo(x2, this.y).stroke(); return this },
-      dashedRule(x1: number, x2: number)                                              { doc.moveTo(x1, this.y).lineTo(x2, this.y).lineWidth(0.5).dash(3, { space: 3 }).stroke(); doc.undash().lineWidth(1); return this },
-      bold()                                                                           { doc.font('Helvetica-Bold'); return this },
-      normal()                                                                         { doc.font('Helvetica'); return this },
-      size(n: number)                                                                  { doc.fontSize(n); return this },
-    }
-
-    let subtotal = 0
-    const vatByRate: Record<number, { base: number, vat: number }> = {}
-
-    for (const item of serviceItems) {
-      const lineSubtotal = Number(item.total_ex_vat ?? 0)
-      const lineTotal = Number(item.total_inc_vat ?? 0)
-      const vatRate = Number(item.vat_rate)
-
-      subtotal += lineSubtotal
-      if (!vatByRate[vatRate]) vatByRate[vatRate] = { base: 0, vat: 0 }
-      vatByRate[vatRate].base += lineSubtotal
-      vatByRate[vatRate].vat += lineTotal - lineSubtotal
-
-      P.size(9)
-      const descH = doc.heightOfString(item.description, { width: 225 })
-      const rowHeight = Math.max(descH, 12) + 4
-      doc.text(item.description, col1, P.y, { width: 225 })
-      doc.text(`${vatRate.toFixed(0)}%`, col2, P.y)
-      doc.text(`${item.quantity}`, col3, P.y)
-      if (!hideProductPrice) {
-        doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), col4, P.y)
-        doc.text(this.formatMoney(lineSubtotal, invoice.currency), col5, P.y)
-      }
-      P.skip(rowHeight)
-    }
-
-    P.rule().skip(10)
-
-    // === TOTALS (Dutch law: subtotal, VAT breakdown per rate, subtotal incl. VAT) ===
-    P.size(10)
-    P.row('Subtotaal excl. BTW:', 290, this.formatMoney(subtotal, invoice.currency), col5)
-
-    let totalVat = 0
-    for (const [rate, { vat }] of Object.entries(vatByRate)) {
-      totalVat += vat
-      P.row(`BTW ${rate}%`, 290, this.formatMoney(vat, invoice.currency), col5)
-    }
-
-    const serviceTotalIncVat = subtotal + totalVat
-
-    // === SUBSIDY SECTION (shown before grand total when subsidies are present) ===
-    let subsidyTotal = 0
-    if (subsidyItems.length > 0) {
-      P.bold().size(10)
-      P.row('Totaal incl. BTW:', 290, this.formatMoney(serviceTotalIncVat, invoice.currency), col5)
-        .skip(4).dashedRule(290, 560).skip(8)
-
-      P.bold().size(9)
-      P.text('Geschatte Subsidie', 50, { width: 300 }, 12)
-      P.normal().size(9)
-
-      for (const item of subsidyItems) {
-        const subsidyAmount = Number(item.total_inc_vat ?? 0) // negative
-        subsidyTotal += subsidyAmount
-        doc.text(item.description, col1, P.y, { width: 400 })
-        doc.text(`- ${this.formatMoney(Math.abs(subsidyAmount), invoice.currency)}`, col5, P.y)
-        P.skip(14)
-      }
-
-      P.dashedRule(290, 560).skip(8)
-    }
-
-    const grandTotal = serviceTotalIncVat + subsidyTotal // subsidyTotal is negative
-    P.size(10)
-    if (subsidyItems.length > 0) {     
-      P.normal()
-      P.row('Uw Totale Investering incl. Subsidie:', 290, this.formatMoney(grandTotal, invoice.currency), col5, 20)
-    } else {
-      P.bold()
-      P.row('Totaal incl. BTW:', 290, this.formatMoney(grandTotal, invoice.currency), col5, 20)
-      P.normal()
-    }
-
-    // === TWO-COLUMN FOOTER: Description & Terms (left) | Bank details (right) ===
-    const footerStartY = P.y + 10
-
-    // LEFT COLUMN: Description + Payment terms
-    P.y = footerStartY
-    if (invoice.payment_terms) {
-      P.size(10).bold()
-      P.text('Betalingsvoorwaarden:', 50, { width: 260 }, 12)
-      P.normal()
-      P.text(invoice.payment_terms, 50, { width: 260 }, 12)
-      P.skip(4)
-    }
-
-    if (invoice.description) {
-      P.size(10).bold()
-      P.text('Omschrijving:', 50, { width: 260 }, 12)
-      P.normal()
-      P.text(invoice.description, 50, { width: 260 }, 12)
-      P.skip(4)
-    }
-    const leftColEndY = P.y
-
-    // RIGHT COLUMN: Bank details
-    P.y = footerStartY
-    const bankCol = 340
-    P.size(10).bold()
-    P.text('Betalingsgegevens:', bankCol, { width: 220 }, 14)
-    P.normal()
-    P.text(`IBAN: ${cfg.company.iban}`, bankCol, { width: 220 })
-    if (cfg.company.bankName) P.text(`Bank: ${cfg.company.bankName}`, bankCol, { width: 220 })
-    P.text(`T.n.v.: ${cfg.company.company}`, bankCol, { width: 220 })
-    P.text(`O.v.v.: ${invoice.invoice_number}`, bankCol, { width: 220 })
-    const rightColEndY = P.y
-
-    P.y = Math.max(leftColEndY, rightColEndY)
-
-    // === CERTIFICATES (bottom of page) ===
-    if (fs.existsSync(certPath)) {
-      const certWidth = 180 // scaled from 360x100 original
-      const certHeight = certWidth * (100 / 360)
-      P.skip(20)
-      doc.image(certPath, 50, P.y, { width: certWidth, height: certHeight })
-      P.skip(certHeight)
-    }
-
-    doc.end()
-    return await done
+    return await renderer.render({ invoice, items, customer })
   }
 
   public async sendInvoiceEmail(invoiceId: number, recipient?: string, opt?: { mode?: 'invoice'|'receipt', ccOwner?: boolean }) {
