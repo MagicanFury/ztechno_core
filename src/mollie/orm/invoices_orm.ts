@@ -214,17 +214,19 @@ export class InvoicesOrm extends ZOrm {
     due_date?: string | null
     hide_product_price?: boolean
     amount_due?: number
+    issued_at?: string | null
   }) {
     const sets: string[] = []
     const params: Record<string, any> = { id }
 
-    if (fields.customer_id !== undefined)       { sets.push('customer_id=:customer_id');             params.customer_id = fields.customer_id }
+    if (fields.customer_id !== undefined)        { sets.push('customer_id=:customer_id');             params.customer_id = fields.customer_id }
     if (fields.mollie_customer_id !== undefined) { sets.push('mollie_customer_id=:mollie_customer_id'); params.mollie_customer_id = fields.mollie_customer_id }
     if (fields.description !== undefined)        { sets.push('description=:description');              params.description = fields.description }
     if (fields.payment_terms !== undefined)      { sets.push('payment_terms=:payment_terms');          params.payment_terms = fields.payment_terms }
     if (fields.due_date !== undefined)           { sets.push('due_date=:due_date');                    params.due_date = fields.due_date }
     if (fields.hide_product_price !== undefined) { sets.push('hide_product_price=:hide_product_price'); params.hide_product_price = fields.hide_product_price }
     if (fields.amount_due !== undefined)         { sets.push('amount_due=:amount_due');                params.amount_due = fields.amount_due }
+    if (fields.issued_at !== undefined)          { sets.push('issued_at=:issued_at');                  params.issued_at = fields.issued_at }
 
     if (sets.length === 0) return
     sets.push('updated_at=NOW()')
