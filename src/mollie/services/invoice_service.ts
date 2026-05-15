@@ -37,7 +37,7 @@ export class InvoiceService {
   private get config() { return this.opt.siteConfig }
   private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
-  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string, hideProductPrice?: boolean }) {
+  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string }) {
     this.invoiceStatusLogOrm = new InvoiceStatusLogOrm({ sqlService: opt.sqlService })
     this.paymentStatusLogOrm = new PaymentStatusLogOrm({ sqlService: opt.sqlService })
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService, statusLogOrm: this.invoiceStatusLogOrm })
@@ -660,6 +660,7 @@ export class InvoiceService {
       description: input.description,
       payment_terms: input.payment_terms ?? 'Betaling binnen 14 dagen na factuurdatum',
       due_date: input.due_date ?? null,
+      hide_product_price: input.hide_product_price ?? true,
       issued_at: issuedAt,
       paid_at: paidAt,
       checkout_url: overrides?.checkout_url ?? null,
@@ -885,7 +886,6 @@ export class InvoiceService {
     const { invoice, items, customer } = await this.getInvoiceBundle(invoiceId)
     const renderer = new InvoicePdfRenderer({
       siteConfig: this.opt.siteConfig,
-      hideProductPrice: this.opt.hideProductPrice,
     })
     return await renderer.render({ invoice, items, customer })
   }

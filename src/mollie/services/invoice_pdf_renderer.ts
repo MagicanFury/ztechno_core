@@ -29,12 +29,14 @@ export class InvoicePdfRenderer {
 
   private doc!: InstanceType<typeof PDFDocument>
   private cursorY = this.topMargin
+  private currentInvoice?: ZInvoice
 
   constructor(private opt: { siteConfig: Omit<RenderData, "context">, hideProductPrice?: boolean }) {}
 
   public async render(input: InvoicePdfRenderInput): Promise<Buffer> {
     this.doc = new PDFDocument({ size: 'A4', margin: this.topMargin })
     this.cursorY = this.topMargin
+    this.currentInvoice = input.invoice
 
     const buffers: Uint8Array[] = []
     this.doc.on('data', (chunk) => buffers.push(chunk))
@@ -58,7 +60,11 @@ export class InvoicePdfRenderer {
   }
 
   private get qtyCol() {
-    return this.opt.hideProductPrice ? 480 : 330
+    return this.shouldHideProductPrice ? 480 : 330
+  }
+
+  private get shouldHideProductPrice() {
+    return !!this.currentInvoice?.hide_product_price || !!this.opt.hideProductPrice
   }
 
   private formatMoney(value: number, currency: string) {
@@ -145,7 +151,7 @@ export class InvoicePdfRenderer {
     this.doc.text('Product / Dienst', this.col1, tableTop)
     this.doc.text('BTW %', this.col2, tableTop)
     this.doc.text('Aantal', this.qtyCol, tableTop)
-    if (!this.opt.hideProductPrice) {
+    if (!this.shouldHideProductPrice) {
       this.doc.text('Prijs excl.', this.col4, tableTop)
       this.doc.text('Totaal excl.', this.col5, tableTop)
     }
@@ -181,7 +187,7 @@ export class InvoicePdfRenderer {
       this.doc.text(item.description, this.col1, this.cursorY, { width: 225 })
       this.doc.text(`${vatRate.toFixed(0)}%`, this.col2, this.cursorY)
       this.doc.text(`${item.quantity}`, this.qtyCol, this.cursorY)
-      if (!this.opt.hideProductPrice) {
+      if (!this.shouldHideProductPrice) {
         this.doc.text(this.formatMoney(Number(item.unit_price), invoice.currency), this.col4, this.cursorY)
         this.doc.text(this.formatMoney(lineSubtotal, invoice.currency), this.col5, this.cursorY)
       }

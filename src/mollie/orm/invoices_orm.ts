@@ -19,9 +19,9 @@ export class InvoicesOrm extends ZOrm {
   public async create(invoice: Omit<ZInvoice, 'id'|'created_at'|'updated_at'>) {
     const res = await this.sqlService.query(/*SQL*/`
       INSERT INTO \`${this.alias}\`
-        (invoice_number, customer_id, subscription_id, subscription_period_start, subscription_period_end, mollie_customer_id, mollie_payment_id, pay_token_hash, pay_token_expires_at, pay_token_finalized_at, status, amount_due, amount_paid, currency, description, payment_terms, due_date, issued_at, paid_at, checkout_url, times_sent, metadata)
+        (invoice_number, customer_id, subscription_id, subscription_period_start, subscription_period_end, mollie_customer_id, mollie_payment_id, pay_token_hash, pay_token_expires_at, pay_token_finalized_at, status, amount_due, amount_paid, currency, description, payment_terms, due_date, hide_product_price, issued_at, paid_at, checkout_url, times_sent, metadata)
       VALUES
-        (:invoice_number, :customer_id, :subscription_id, :subscription_period_start, :subscription_period_end, :mollie_customer_id, :mollie_payment_id, :pay_token_hash, :pay_token_expires_at, :pay_token_finalized_at, :status, :amount_due, :amount_paid, :currency, :description, :payment_terms, :due_date, :issued_at, :paid_at, :checkout_url, :times_sent, :metadata)
+        (:invoice_number, :customer_id, :subscription_id, :subscription_period_start, :subscription_period_end, :mollie_customer_id, :mollie_payment_id, :pay_token_hash, :pay_token_expires_at, :pay_token_finalized_at, :status, :amount_due, :amount_paid, :currency, :description, :payment_terms, :due_date, :hide_product_price, :issued_at, :paid_at, :checkout_url, :times_sent, :metadata)
       ON DUPLICATE KEY UPDATE
         subscription_id=VALUES(subscription_id),
         subscription_period_start=VALUES(subscription_period_start),
@@ -38,13 +38,14 @@ export class InvoicesOrm extends ZOrm {
         description=VALUES(description),
         payment_terms=VALUES(payment_terms),
         due_date=VALUES(due_date),
+        hide_product_price=VALUES(hide_product_price),
         issued_at=VALUES(issued_at),
         paid_at=VALUES(paid_at),
         checkout_url=VALUES(checkout_url),
         times_sent=VALUES(times_sent),
         metadata=VALUES(metadata),
         updated_at=NOW()
-    `, { ...invoice, times_sent: invoice.times_sent ?? 0 })
+      `, { ...invoice, hide_product_price: invoice.hide_product_price ? 1 : 0, times_sent: invoice.times_sent ?? 0 })
     return res
   }
 
@@ -249,6 +250,7 @@ export class InvoicesOrm extends ZOrm {
         description VARCHAR(512),
         payment_terms VARCHAR(255),
         due_date DATE,
+        hide_product_price TINYINT(1) NOT NULL DEFAULT 1,
         issued_at DATETIME,
         paid_at DATETIME,
         checkout_url VARCHAR(512),

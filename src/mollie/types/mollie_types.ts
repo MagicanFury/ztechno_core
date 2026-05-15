@@ -46,6 +46,7 @@ export type CreateInvoiceInput = {
   currency?: string
   payment_terms?: string // Dutch law: payment conditions
   due_date?: string
+  hide_product_price?: boolean
   items: (Pick<ZInvoiceItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number, item_type?: ZInvoiceItemType })[]
   metadata?: any
 }
@@ -81,6 +82,7 @@ export type ZInvoice = {
   description?: string|null
   payment_terms?: string|null // Dutch law: payment conditions (e.g., "Betaling binnen 14 dagen")
   due_date?: string|null
+  hide_product_price?: boolean|null
   issued_at?: string|null
   paid_at?: string|null
   checkout_url?: string|null
