@@ -45,6 +45,7 @@ export type CreateInvoiceInput = {
   description?: string
   currency?: string
   payment_terms?: string // Dutch law: payment conditions
+  issued_at?: string
   due_date?: string
   hide_product_price?: boolean
   items: (Pick<ZInvoiceItem, 'description'|'quantity'|'unit_price'|'vat_rate'> & { sort_order?: number, item_type?: ZInvoiceItemType })[]
