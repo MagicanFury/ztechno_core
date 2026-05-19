@@ -247,6 +247,18 @@ export class InvoiceService {
     return crypto.createHash('sha256').update(raw).digest('hex')
   }
 
+  private parseInvoiceIdFromPayTokenRaw(raw: string): number | null {
+    const match = raw.match(/^inv_(\d+)_/)
+    if (!match) {
+      return null
+    }
+    const invoiceId = Number(match[1])
+    if (!Number.isSafeInteger(invoiceId) || invoiceId <= 0) {
+      return null
+    }
+    return invoiceId
+  }
+
   private async getInvoiceBundle(invoiceId: number) {
     const invoice = await this.invoicesOrm.findById(invoiceId)
     if (!invoice) {
@@ -428,7 +440,14 @@ export class InvoiceService {
     }
 
     const tokenHash = this.hashPayTokenRaw(raw)
-    const invoice = await this.invoicesOrm.findByPayTokenHash(tokenHash)
+    let invoice = await this.invoicesOrm.findByPayTokenHash(tokenHash)
+    if (!invoice) {
+      // Backward-compatible fallback: token may be valid but superseded by a newer resend.
+      const invoiceId = this.parseInvoiceIdFromPayTokenRaw(raw)
+      if (invoiceId) {
+        invoice = await this.invoicesOrm.findById(invoiceId)
+      }
+    }
     if (!invoice) {
       throw new Error('Pay token not found')
     }
@@ -454,7 +473,9 @@ export class InvoiceService {
         }
       }
       const checkoutUrl = existingPayment?.getCheckoutUrl() || existingPayment?._links?.checkout?.href
-      if (existingPayment.status === 'open' && checkoutUrl) {
+      const checkoutExpiresAtMs = existingPayment.expiresAt ? new Date(existingPayment.expiresAt as any).getTime() : null
+      const isCheckoutExpired = checkoutExpiresAtMs != null && checkoutExpiresAtMs <= Date.now()
+      if (existingPayment.status === 'open' && checkoutUrl && !isCheckoutExpired) {
         return { action: 'redirect', checkoutUrl, invoice }
       }
     }
