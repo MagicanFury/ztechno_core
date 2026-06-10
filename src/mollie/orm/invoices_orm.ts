@@ -178,6 +178,19 @@ export class InvoicesOrm extends ZOrm {
     `, { id })
   }
 
+  /**
+   * Resets paid-related fields on the invoice. Used when reverting a manual mark-as-paid:
+   * sets `amount_paid=0`, clears `paid_at`, and clears `pay_token_finalized_at` so a
+   * fresh pay token can be issued.
+   */
+  public async clearPaymentFields(id: number) {
+    await this.sqlService.query(/*SQL*/`
+      UPDATE \`${this.alias}\`
+      SET amount_paid=0, paid_at=NULL, pay_token_finalized_at=NULL, updated_at=NOW()
+      WHERE id=:id
+    `, { id })
+  }
+
   public async incrementTimesSent(id: number) {
     await this.sqlService.query(/*SQL*/`
       UPDATE \`${this.alias}\`

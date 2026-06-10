@@ -15,7 +15,7 @@ import { ZMailService } from "../../core/mail_service"
 import { MollieService } from "./mollie_service"
 import { ZSQLService } from "../../core/sql_service"
 import { parseSubscriptionInterval, addSubscriptionInterval, formatDateOnly } from "../util/subscription_utils"
-import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus, ZIssuedPayToken, ZPayResolveResult, ZSubscription, ZInvoiceItemTemplate } from "../types/mollie_types"
+import { ZInvoice, CreateInvoiceInput, ZInvoiceItem, ZInvoicePayment, CreateInvoiceOverrides, ZInvoiceStatus, ZIssuedPayToken, ZPayResolveResult, ZSubscription, ZInvoiceItemTemplate, MarkInvoicePaidInput, UnmarkInvoicePaidInput } from "../types/mollie_types"
 import { formatDatetime, toDatetime, toDatetimeFromDateOnly } from "../../core/orm/orm"
 
 export class InvoiceService {
@@ -68,6 +68,7 @@ export class InvoiceService {
     await this.ensurePayTokenSchema()
     await this.ensureSubscriptionInvoiceSchema()
     await this.ensureInvoicePaymentSchema()
+    await this.ensureManualPaymentSchema()
     await this.ensureSubsidyItemTypeSchema()
     await this.ensureSentCountSchema()
     await this.ensureArchivedAtSchema()
@@ -177,6 +178,68 @@ export class InvoiceService {
     })
     if (!indexRows?.[0]) {
       await this.opt.sqlService.query(`ALTER TABLE \`${table}\` ADD KEY idx_payments_subscription (mollie_subscription_id)`)
+    }
+  }
+
+  /**
+   * Adds the columns required to record manually-marked-paid invoices on the
+   * `mollie_invoice_payments` table:
+   *   - `source` ENUM('mollie','manual') NOT NULL DEFAULT 'mollie'
+   *   - `manual_method` ENUM('cash','bank_transfer','other') NULL
+   *   - `manual_reference` VARCHAR(255) NULL
+   * Also relaxes `mollie_payment_id` to allow NULL so manual rows can be inserted
+   * without a Mollie payment id, and relaxes the same column on the payment
+   * status log so audit log entries for manual rows are accepted.
+   */
+  private async ensureManualPaymentSchema() {
+    const payments = this.paymentsOrm.alias
+    const payLog = this.paymentStatusLogOrm.alias
+    const schema = this.opt.sqlService.database
+
+    const columnExists = async (table: string, column: string) => {
+      const rows = await this.opt.sqlService.exec<any>({
+        query: `SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND COLUMN_NAME=:columnName LIMIT 1`,
+        params: { schema, tableName: table, columnName: column }
+      })
+      return !!rows?.[0]
+    }
+
+    const indexExists = async (table: string, indexName: string) => {
+      const rows = await this.opt.sqlService.exec<any>({
+        query: `SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND INDEX_NAME=:indexName LIMIT 1`,
+        params: { schema, tableName: table, indexName }
+      })
+      return !!rows?.[0]
+    }
+
+    const isColumnNullable = async (table: string, column: string) => {
+      const rows = await this.opt.sqlService.exec<{ IS_NULLABLE: string }>({
+        query: `SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=:schema AND TABLE_NAME=:tableName AND COLUMN_NAME=:columnName LIMIT 1`,
+        params: { schema, tableName: table, columnName: column }
+      })
+      return rows?.[0]?.IS_NULLABLE === 'YES'
+    }
+
+    // Add new columns to mollie_invoice_payments
+    if (!(await columnExists(payments, 'source'))) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${payments}\` ADD COLUMN source ENUM('mollie','manual') NOT NULL DEFAULT 'mollie' AFTER mollie_payment_id`)
+    }
+    if (!(await columnExists(payments, 'manual_method'))) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${payments}\` ADD COLUMN manual_method ENUM('cash','bank_transfer','other') NULL AFTER method`)
+    }
+    if (!(await columnExists(payments, 'manual_reference'))) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${payments}\` ADD COLUMN manual_reference VARCHAR(255) NULL AFTER manual_method`)
+    }
+    if (!(await indexExists(payments, 'idx_payments_source'))) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${payments}\` ADD KEY idx_payments_source (source)`)
+    }
+
+    // Relax NOT NULL on mollie_payment_id (both tables) so manual rows can be persisted
+    if (!(await isColumnNullable(payments, 'mollie_payment_id'))) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${payments}\` MODIFY COLUMN mollie_payment_id VARCHAR(64) NULL`)
+    }
+    if (!(await isColumnNullable(payLog, 'mollie_payment_id'))) {
+      await this.opt.sqlService.query(`ALTER TABLE \`${payLog}\` MODIFY COLUMN mollie_payment_id VARCHAR(64) NULL`)
     }
   }
 
@@ -589,6 +652,166 @@ export class InvoiceService {
     })
 
     return await this.invoicesOrm.findById(invoiceId)
+  }
+
+  // ==================== Manual Payment ====================
+
+  /**
+   * Marks an invoice as paid manually (e.g. cash, bank transfer received outside Mollie).
+   * Creates a manual payment row, transitions the invoice to `paid`, finalizes any
+   * outstanding pay token, and (by default) sends a receipt email.
+   *
+   * Guard rails:
+   * - Invoice must exist, not be archived, not already be `paid` or `refunded`.
+   * - For subscription invoices: the subscription must already have a `mollie_subscription_id`.
+   *   Manually marking the FIRST payment of a Mollie subscription is rejected because it
+   *   would prevent Mollie subscription activation (which only happens via webhook).
+   * - Concurrent Mollie webhook race: a later webhook may still write its own payment row
+   *   and refresh `paid_at`. Both audit trails are preserved.
+   */
+  public async markInvoicePaidManually(
+    invoiceId: number,
+    input: MarkInvoicePaidInput
+  ): Promise<{ invoice: ZInvoice, payment: ZInvoicePayment }> {
+    const invoice = await this.invoicesOrm.findById(invoiceId)
+    if (!invoice) {
+      throw new Error(`Invoice ${invoiceId} not found`)
+    }
+    if (this.invoicesOrm.isArchived(invoice)) {
+      throw new Error(`Invoice ${invoiceId} is archived and cannot be marked as paid`)
+    }
+    if (invoice.status === 'paid') {
+      throw new Error(`Invoice ${invoiceId} is already paid`)
+    }
+    if (invoice.status === 'refunded') {
+      throw new Error(`Invoice ${invoiceId} is refunded and cannot be marked as paid`)
+    }
+    if (Number(invoice.amount_due) <= 0) {
+      throw new Error(`Invoice ${invoiceId} has no amount due`)
+    }
+    if (!input?.method) {
+      throw new Error(`Manual payment method is required (cash | bank_transfer | other)`)
+    }
+
+    if (invoice.subscription_id) {
+      const subscription = await this.subscriptionsOrm.findById(invoice.subscription_id)
+      if (subscription && !subscription.mollie_subscription_id) {
+        throw new Error(
+          `Cannot manually mark invoice ${invoiceId} paid: it is the first payment of subscription ${subscription.id} and would prevent Mollie subscription activation. Use a Mollie payment for the first invoice.`
+        )
+      }
+    }
+
+    const paidAt = input.paid_at ?? formatDatetime(new Date())
+    const reference = input.reference ?? null
+    const auditNote = input.note
+      ?? `Manually marked as paid (${input.method}${reference ? `: ${reference}` : ''})`
+
+    const payment = await this.paymentsOrm.insertManual({
+      invoice_id: invoice.id!,
+      mollie_payment_id: null,
+      status: 'paid',
+      method: null,
+      manual_method: input.method,
+      manual_reference: reference,
+      amount: Number(invoice.amount_due),
+      currency: invoice.currency || 'EUR',
+      paid_at: paidAt,
+    }, { actorType: 'admin', note: auditNote })
+
+    const previousStatus = invoice.status
+    await this.invoicesOrm.updateStatus(
+      invoice.id!,
+      'paid',
+      Number(invoice.amount_due),
+      paidAt,
+      {
+        fromStatus: previousStatus,
+        actorType: 'admin',
+        note: auditNote,
+      }
+    )
+    await this.invoicesOrm.finalizePayToken(invoice.id!)
+
+    const sendReceipt = input.sendReceipt !== false
+    if (sendReceipt) {
+      try {
+        await this.sendInvoiceEmail(invoice.id!, undefined, { mode: 'receipt', ccOwner: true })
+      } catch (err: any) {
+        // Receipt email is best-effort; do not fail the mark-as-paid operation.
+        console.warn(`[InvoiceService] Failed to send receipt email for invoice ${invoiceId}: ${err?.message ?? err}`)
+      }
+    }
+
+    const updated = await this.invoicesOrm.findById(invoice.id!)
+    if (!updated) {
+      throw new Error(`Invoice ${invoiceId} not found after manual payment`)
+    }
+    return { invoice: updated, payment }
+  }
+
+  /**
+   * Reverses a manual mark-as-paid. Only allowed when the most recent payment row
+   * for the invoice was created via `markInvoicePaidManually` (i.e. `source='manual'`)
+   * to prevent reverting genuine Mollie-confirmed payments.
+   *
+   * Effects:
+   * - Cancels the manual payment row (status='canceled').
+   * - Resets the invoice: status -> 'pending', amount_paid=0, paid_at=NULL.
+   * - Clears `pay_token_finalized_at` and re-issues a fresh pay link.
+   */
+  public async unmarkInvoicePaid(
+    invoiceId: number,
+    input?: UnmarkInvoicePaidInput
+  ): Promise<{ invoice: ZInvoice, pay: ZIssuedPayToken }> {
+    const invoice = await this.invoicesOrm.findById(invoiceId)
+    if (!invoice) {
+      throw new Error(`Invoice ${invoiceId} not found`)
+    }
+    if (this.invoicesOrm.isArchived(invoice)) {
+      throw new Error(`Invoice ${invoiceId} is archived`)
+    }
+    if (invoice.status !== 'paid') {
+      throw new Error(`Invoice ${invoiceId} is not paid (status=${invoice.status})`)
+    }
+
+    const latest = await this.paymentsOrm.findLatestByInvoice(invoice.id!)
+    if (!latest) {
+      throw new Error(`Invoice ${invoiceId} has no payment rows to reverse`)
+    }
+    if (latest.source !== 'manual') {
+      throw new Error(`Cannot unmark: latest payment for invoice ${invoiceId} is from Mollie, not a manual entry`)
+    }
+    if (latest.status !== 'paid') {
+      throw new Error(`Latest manual payment for invoice ${invoiceId} is not in 'paid' state (status=${latest.status})`)
+    }
+
+    const auditNote = input?.note ?? 'Manual payment reversed'
+
+    await this.paymentsOrm.updateStatusById(latest.id!, 'canceled', {
+      actorType: 'admin',
+      note: auditNote,
+    })
+
+    await this.invoicesOrm.clearPaymentFields(invoice.id!)
+    await this.invoicesOrm.updateStatus(
+      invoice.id!,
+      'pending',
+      undefined,
+      undefined,
+      {
+        fromStatus: 'paid',
+        actorType: 'admin',
+        note: auditNote,
+      }
+    )
+
+    const updated = await this.invoicesOrm.findById(invoice.id!)
+    if (!updated) {
+      throw new Error(`Invoice ${invoiceId} not found after unmark`)
+    }
+    const pay = await this.ensurePayLink(invoice.id!)
+    return { invoice: updated, pay }
   }
 
   // ==================== Duplicate ====================

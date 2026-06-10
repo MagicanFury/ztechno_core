@@ -53,7 +53,7 @@ export class PaymentStatusLogOrm extends ZOrm {
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         payment_id BIGINT UNSIGNED NOT NULL,
         invoice_id BIGINT UNSIGNED NOT NULL,
-        mollie_payment_id VARCHAR(64) NOT NULL,
+        mollie_payment_id VARCHAR(64) NULL,
         from_status ENUM('open','pending','authorized','paid','canceled','expired','failed','refunded') NULL,
         to_status ENUM('open','pending','authorized','paid','canceled','expired','failed','refunded') NOT NULL,
         actor_type ENUM('webhook','system','admin') NOT NULL,

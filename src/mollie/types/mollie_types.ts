@@ -98,14 +98,21 @@ export type ZInvoice = {
 
 export type ZInvoicePaymentStatus = 'open'|'pending'|'authorized'|'paid'|'canceled'|'expired'|'failed'|'refunded'
 
+export type ZInvoicePaymentSource = 'mollie' | 'manual'
+
+export type ZManualPaymentMethod = 'cash' | 'bank_transfer' | 'other'
+
 export type ZInvoicePayment = {
   id?: number
   invoice_id: number
-  mollie_payment_id: string
+  mollie_payment_id?: string|null
+  source?: ZInvoicePaymentSource
   status: ZInvoicePaymentStatus
   sequence_type?: 'oneoff'|'first'|'recurring'|null
   mollie_subscription_id?: string|null
   method?: string|null
+  manual_method?: ZManualPaymentMethod|null
+  manual_reference?: string|null
   amount: number
   currency: string
   checkout_url?: string|null
@@ -114,6 +121,18 @@ export type ZInvoicePayment = {
   mandate_id?: string|null
   created_at?: string|Date
   updated_at?: string|Date
+}
+
+export type MarkInvoicePaidInput = {
+  method: ZManualPaymentMethod
+  paid_at?: string|null
+  reference?: string|null
+  note?: string|null
+  sendReceipt?: boolean
+}
+
+export type UnmarkInvoicePaidInput = {
+  note?: string|null
 }
 
 // ============================== // Subscriptions
@@ -214,7 +233,7 @@ export type ZPaymentStatusLogEntry = {
   id?: number
   payment_id: number
   invoice_id: number
-  mollie_payment_id: string
+  mollie_payment_id?: string | null
   from_status: ZInvoicePaymentStatus | null
   to_status: ZInvoicePaymentStatus
   actor_type: ZAuditActorType
