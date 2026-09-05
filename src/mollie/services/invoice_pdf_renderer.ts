@@ -68,8 +68,13 @@ export class InvoicePdfRenderer {
   }
 
   private formatMoney(value: number, currency: string) {
-    const symbol = currency === 'EUR' ? '€' : currency
-    return `${symbol} ${value.toFixed(2)}`
+    const currencyCode = currency === '€' ? 'EUR' : currency.trim().toUpperCase()
+    return new Intl.NumberFormat('nl-NL', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value)
   }
 
   private measureText(text: string, opts?: TextOptions) {
