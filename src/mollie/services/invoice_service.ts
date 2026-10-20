@@ -1160,6 +1160,7 @@ export class InvoiceService {
     await this.mailService.sendAdvanced({
       from: `${cfg.company.company} <${cfg.contact.contact}>`,
       recipient: to,
+      replyTo: cfg.contact.contactQuote ?? cfg.contact.contact,
       cc,
       subject,
       template: 'template.html',
