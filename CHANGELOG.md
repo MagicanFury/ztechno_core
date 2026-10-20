@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.150] - 2026-10-20
+
+### Added
+- `ZMailService.send` now supports an optional `replyTo` option (`MailOptionsBase.replyTo`)
+
+---
+
 ## [0.0.135] - 2026-03-27
 
 ### Fixed
