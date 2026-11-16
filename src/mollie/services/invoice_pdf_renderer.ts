@@ -314,14 +314,17 @@ export class InvoicePdfRenderer {
     const cfg = this.opt.siteConfig
     const lines = [`IBAN: ${cfg.company.iban}`]
     // if (cfg.company.bankName) lines.push(`Bank: ${cfg.company.bankName}`)
-    // lines.push(`T.n.v.: ${cfg.company.company}`, `O.v.v.: ${invoice.invoice_number}`)
+    // lines.push(`T.n.v.: ${cfg.company.company}`)
+    lines.push(`O.v.v.: ${invoice.invoice_number}`)
     return lines
   }
 
   private renderPaymentDetails(invoice: ZInvoice, x: number, y: number, opts: TextOptions) {
-    this.doc.fontSize(10).font('Helvetica-Bold')
-    this.doc.text('Betalingsgegevens:', x, y, opts)
-    y += Math.max(this.measureText('Betalingsgegevens:', opts), 14)
+    if (!this.opt.paymentDetailsInHeader) {
+      this.doc.fontSize(10).font('Helvetica-Bold')
+      this.doc.text('Betalingsgegevens:', x, y, opts)
+      y += Math.max(this.measureText('Betalingsgegevens:', opts), 14)
+    }
     this.doc.font('Helvetica')
     for (const line of this.paymentDetailLines(invoice)) {
       y = this.writeAbsoluteText(line, x, y, opts)
