@@ -112,8 +112,8 @@ export class InvoicePdfRenderer {
     supplierY = this.writeAbsoluteText(`${cfg.address.zipcode} ${cfg.address.city}`, this.rightCol, supplierY, { width: 230, align: 'right' })
     supplierY = this.writeAbsoluteText(cfg.address.country, this.rightCol, supplierY, { width: 230, align: 'right' })
     supplierY += 5
-    supplierY = this.writeAbsoluteText(`KVK ${cfg.company.kvk}`, this.rightCol, supplierY, { width: 230, align: 'right' })
-    supplierY = this.writeAbsoluteText(`${cfg.company.btwNr}`, this.rightCol, supplierY, { width: 230, align: 'right' })
+    supplierY = this.writeAbsoluteText(`KVK: ${cfg.company.kvk}`, this.rightCol, supplierY, { width: 230, align: 'right' })
+    supplierY = this.writeAbsoluteText(`BTW: ${cfg.company.btwNr}`, this.rightCol, supplierY, { width: 230, align: 'right' })
 
     let customerY = Math.max(supplierY, 120)
     if (this.opt.paymentDetailsInHeader) {
@@ -313,8 +313,8 @@ export class InvoicePdfRenderer {
   private paymentDetailLines(invoice: ZInvoice) {
     const cfg = this.opt.siteConfig
     const lines = [`IBAN: ${cfg.company.iban}`]
-    if (cfg.company.bankName) lines.push(`Bank: ${cfg.company.bankName}`)
-    lines.push(`T.n.v.: ${cfg.company.company}`, `O.v.v.: ${invoice.invoice_number}`)
+    // if (cfg.company.bankName) lines.push(`Bank: ${cfg.company.bankName}`)
+    // lines.push(`T.n.v.: ${cfg.company.company}`, `O.v.v.: ${invoice.invoice_number}`)
     return lines
   }
 
