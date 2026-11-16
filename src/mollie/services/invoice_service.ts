@@ -37,7 +37,7 @@ export class InvoiceService {
   private get config() { return this.opt.siteConfig }
   private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
-  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string }) {
+  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string, paymentDetailsInHeader?: boolean }) {
     this.invoiceStatusLogOrm = new InvoiceStatusLogOrm({ sqlService: opt.sqlService })
     this.paymentStatusLogOrm = new PaymentStatusLogOrm({ sqlService: opt.sqlService })
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService, statusLogOrm: this.invoiceStatusLogOrm })
@@ -1131,6 +1131,7 @@ export class InvoiceService {
     const { invoice, items, customer } = await this.getInvoiceBundle(invoiceId)
     const renderer = new InvoicePdfRenderer({
       siteConfig: this.opt.siteConfig,
+      paymentDetailsInHeader: this.opt.paymentDetailsInHeader,
     })
     return await renderer.render({ invoice, items, customer })
   }

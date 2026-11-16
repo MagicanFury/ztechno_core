@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.152] - 2026-11-17
+
+### Added
+- Optional `paymentDetailsInHeader` on `InvoiceService` and `InvoicePdfRenderer` places payment details beneath the supplier's VAT number, right-aligned, instead of in the footer. Defaults to `false`; payment terms and invoice description remain in the footer.
+
+---
+
 ## [0.0.150] - 2026-10-20
 
 ### Added

@@ -31,7 +31,7 @@ export class InvoicePdfRenderer {
   private cursorY = this.topMargin
   private currentInvoice?: ZInvoice
 
-  constructor(private opt: { siteConfig: Omit<RenderData, "context">, hideProductPrice?: boolean }) {}
+  constructor(private opt: { siteConfig: Omit<RenderData, "context">, hideProductPrice?: boolean, paymentDetailsInHeader?: boolean }) {}
 
   public async render(input: InvoicePdfRenderInput): Promise<Buffer> {
     this.doc = new PDFDocument({ size: 'A4', margin: this.topMargin })
@@ -116,17 +116,21 @@ export class InvoicePdfRenderer {
     supplierY = this.writeAbsoluteText(`${cfg.company.btwNr}`, this.rightCol, supplierY, { width: 230, align: 'right' })
 
     let customerY = Math.max(supplierY, 120)
-    this.doc.font('Helvetica-Bold').fontSize(18)
-    customerY = this.writeAbsoluteText(customer.company || '', this.leftMargin, customerY)
-    this.doc.font('Helvetica').fontSize(10)
-    customerY = this.writeAbsoluteText(customer.name, this.leftMargin, customerY)
-    if (customer.address_line1) customerY = this.writeAbsoluteText(customer.address_line1, this.leftMargin, customerY)
-    if (customer.address_line2) customerY = this.writeAbsoluteText(customer.address_line2, this.leftMargin, customerY)
-    if (customer.postal_code || customer.city) {
-      customerY = this.writeAbsoluteText(`${customer.postal_code || ''} ${customer.city || ''}`.trim(), this.leftMargin, customerY)
+    if (this.opt.paymentDetailsInHeader) {
+      supplierY = this.renderPaymentDetails(invoice, this.rightCol, supplierY + 10, { width: 230, align: 'right' })
     }
-    if (customer.country) customerY = this.writeAbsoluteText(customer.country === 'NL' ? 'Nederland' : customer.country, this.leftMargin, customerY)
-    if (customer.btw_nummer) customerY = this.writeAbsoluteText(`${customer.btw_nummer}`, this.leftMargin, customerY)
+    const customerTextOptions = this.opt.paymentDetailsInHeader ? { width: 260 } : undefined
+    this.doc.font('Helvetica-Bold').fontSize(18)
+    customerY = this.writeAbsoluteText(customer.company || '', this.leftMargin, customerY, customerTextOptions)
+    this.doc.font('Helvetica').fontSize(10)
+    customerY = this.writeAbsoluteText(customer.name, this.leftMargin, customerY, customerTextOptions)
+    if (customer.address_line1) customerY = this.writeAbsoluteText(customer.address_line1, this.leftMargin, customerY, customerTextOptions)
+    if (customer.address_line2) customerY = this.writeAbsoluteText(customer.address_line2, this.leftMargin, customerY, customerTextOptions)
+    if (customer.postal_code || customer.city) {
+      customerY = this.writeAbsoluteText(`${customer.postal_code || ''} ${customer.city || ''}`.trim(), this.leftMargin, customerY, customerTextOptions)
+    }
+    if (customer.country) customerY = this.writeAbsoluteText(customer.country === 'NL' ? 'Nederland' : customer.country, this.leftMargin, customerY, customerTextOptions)
+    if (customer.btw_nummer) customerY = this.writeAbsoluteText(`${customer.btw_nummer}`, this.leftMargin, customerY, customerTextOptions)
 
     const headerBaseY = Math.max(customerY, supplierY) + 10
     this.doc.fontSize(14).font('Helvetica-Bold')
@@ -269,11 +273,13 @@ export class InvoicePdfRenderer {
   }
 
   private renderFooter(invoice: ZInvoice) {
-    const cfg = this.opt.siteConfig
-    const footerStartY = this.cursorY + 10
+    if (this.opt.paymentDetailsInHeader && !invoice.payment_terms && !invoice.description) {
+      return
+    }
 
+    this.doc.fontSize(10).font('Helvetica')
     const leftHeight = this.measureFooterLeft(invoice)
-    const rightHeight = this.measureFooterRight(invoice)
+    const rightHeight = this.opt.paymentDetailsInHeader ? 0 : this.measureFooterRight(invoice)
     const footerHeight = Math.max(leftHeight, rightHeight)
 
     this.ensureSpace(footerHeight + 10)
@@ -297,18 +303,30 @@ export class InvoicePdfRenderer {
       leftY += Math.max(this.measureText(invoice.description, { width: 260 }), 12) + 4
     }
 
-    const bankCol = 340
-    let rightY = this.cursorY + 10
-    this.doc.fontSize(10).font('Helvetica-Bold')
-    this.doc.text('Betalingsgegevens:', bankCol, rightY, { width: 220 })
-    rightY += 14
-    this.doc.font('Helvetica')
-    rightY = this.writeAbsoluteText(`IBAN: ${cfg.company.iban}`, bankCol, rightY, { width: 220 })
-    if (cfg.company.bankName) rightY = this.writeAbsoluteText(`Bank: ${cfg.company.bankName}`, bankCol, rightY, { width: 220 })
-    rightY = this.writeAbsoluteText(`T.n.v.: ${cfg.company.company}`, bankCol, rightY, { width: 220 })
-    rightY = this.writeAbsoluteText(`O.v.v.: ${invoice.invoice_number}`, bankCol, rightY, { width: 220 })
+    const rightY = this.opt.paymentDetailsInHeader
+      ? this.cursorY + 10
+      : this.renderPaymentDetails(invoice, 340, this.cursorY + 10, { width: 220 })
 
     this.cursorY = Math.max(leftY, rightY)
+  }
+
+  private paymentDetailLines(invoice: ZInvoice) {
+    const cfg = this.opt.siteConfig
+    const lines = [`IBAN: ${cfg.company.iban}`]
+    if (cfg.company.bankName) lines.push(`Bank: ${cfg.company.bankName}`)
+    lines.push(`T.n.v.: ${cfg.company.company}`, `O.v.v.: ${invoice.invoice_number}`)
+    return lines
+  }
+
+  private renderPaymentDetails(invoice: ZInvoice, x: number, y: number, opts: TextOptions) {
+    this.doc.fontSize(10).font('Helvetica-Bold')
+    this.doc.text('Betalingsgegevens:', x, y, opts)
+    y += Math.max(this.measureText('Betalingsgegevens:', opts), 14)
+    this.doc.font('Helvetica')
+    for (const line of this.paymentDetailLines(invoice)) {
+      y = this.writeAbsoluteText(line, x, y, opts)
+    }
+    return y
   }
 
   private measureFooterLeft(invoice: ZInvoice) {
@@ -323,12 +341,12 @@ export class InvoicePdfRenderer {
   }
 
   private measureFooterRight(invoice: ZInvoice) {
-    const cfg = this.opt.siteConfig
-    let height = 14
-    height += this.measureText(`IBAN: ${cfg.company.iban}`, { width: 220 })
-    if (cfg.company.bankName) height += this.measureText(`Bank: ${cfg.company.bankName}`, { width: 220 })
-    height += this.measureText(`T.n.v.: ${cfg.company.company}`, { width: 220 })
-    height += this.measureText(`O.v.v.: ${invoice.invoice_number}`, { width: 220 })
+    this.doc.fontSize(10).font('Helvetica-Bold')
+    let height = Math.max(this.measureText('Betalingsgegevens:', { width: 220 }), 14)
+    this.doc.font('Helvetica')
+    for (const line of this.paymentDetailLines(invoice)) {
+      height += this.measureText(line, { width: 220 })
+    }
     return height
   }
 

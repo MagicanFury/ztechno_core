@@ -1,3 +1,14 @@
+## Invoice PDF payment details
+
+Set `paymentDetailsInHeader: true` in the `InvoiceService` constructor options to
+place **Betalingsgegevens** directly below the supplier's address, KVK and VAT
+number. The block is right-aligned and includes IBAN, the optional bank name,
+account holder and invoice reference. `InvoiceService` forwards this option to
+`InvoicePdfRenderer` for both PDF downloads and invoice email attachments.
+
+The option defaults to `false`, retaining payment details in the footer. Payment
+terms and the invoice description remain in the footer in either mode.
+
 # ztech_jquery_ext
 #### Extends JQuery library for more compact code base
 
