@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Optional `pdfRenderer` on `InvoiceService` replaces the invoice PDF layout with a custom renderer (`InvoicePdfRendererLike`, input type `InvoicePdfRenderInput`, both exported). Without it the built-in `InvoicePdfRenderer` is used unchanged.
+
+---
+
 ## [0.0.152] - 2026-11-17
 
 ### Added

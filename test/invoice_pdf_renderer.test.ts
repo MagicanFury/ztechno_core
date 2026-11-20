@@ -145,6 +145,21 @@ test('renders multipage invoices with repeated table headers and payment details
   expect(calls.filter(call => call.text.startsWith('Dienst '))).toHaveLength(100)
 })
 
+test('InvoiceService uses a custom pdfRenderer instead of the built-in layout', async () => {
+  const bundle = { invoice, items: [item], customer }
+  const output = Buffer.from('custom-pdf')
+  const custom = { render: jest.fn(async () => output) }
+  const builtIn = jest.spyOn(InvoicePdfRenderer.prototype, 'render')
+  const service = new InvoiceService({
+    sqlService: {} as any, mollieService: {} as any, customerService: {} as any,
+    mailService: {} as any, siteConfig, payTokenSecret: 'synthetic-test-secret', pdfRenderer: custom,
+  })
+  jest.spyOn(service as any, 'getInvoiceBundle').mockResolvedValue(bundle)
+  expect(await service.generateInvoicePdfBuffer(1)).toBe(output)
+  expect(custom.render).toHaveBeenCalledWith(bundle)
+  expect(builtIn).not.toHaveBeenCalled()
+})
+
 test.each([undefined, false, true])('InvoiceService forwards placement option (%s)', async paymentDetailsInHeader => {
   const bundle = { invoice, items: [item], customer }
   const output = Buffer.from('synthetic-pdf')

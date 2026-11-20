@@ -4,10 +4,15 @@ import fs from "fs"
 import { RenderData } from "../../core/types/site_config"
 import { ZCustomer, ZInvoice, ZInvoiceItem } from "../types/mollie_types"
 
-type InvoicePdfRenderInput = {
+export type InvoicePdfRenderInput = {
   invoice: ZInvoice
   items: ZInvoiceItem[]
   customer: ZCustomer
+}
+
+/** Anything that can turn an invoice bundle into a PDF. Pass one to `InvoiceService` as `pdfRenderer` to replace the default layout. */
+export interface InvoicePdfRendererLike {
+  render(input: InvoicePdfRenderInput): Promise<Buffer>
 }
 
 type TextOptions = {

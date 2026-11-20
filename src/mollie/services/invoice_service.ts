@@ -9,7 +9,7 @@ import { InvoiceStatusLogOrm } from "../orm/invoice_status_log_orm"
 import { PaymentStatusLogOrm } from "../orm/payment_status_log_orm"
 import { CustomerService } from "./customer_service"
 import { InvoiceAuditService } from "./invoice_audit_service"
-import { InvoicePdfRenderer } from "./invoice_pdf_renderer"
+import { InvoicePdfRenderer, InvoicePdfRendererLike } from "./invoice_pdf_renderer"
 import { RenderData } from "../../core/types/site_config"
 import { ZMailService } from "../../core/mail_service"
 import { MollieService } from "./mollie_service"
@@ -37,7 +37,7 @@ export class InvoiceService {
   private get config() { return this.opt.siteConfig }
   private get baseUrl() { return this.opt.siteConfig.baseUrl }
 
-  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string, paymentDetailsInHeader?: boolean }) {
+  constructor(private opt: { sqlService: ZSQLService, mollieService: MollieService, customerService: CustomerService, mailService: ZMailService, siteConfig: Omit<RenderData, "context">, payTokenSecret: string, invoiceNumberMode?: 'sequence' | 'id', invoiceNumberFormat?: (id: number) => string, paymentDetailsInHeader?: boolean, pdfRenderer?: InvoicePdfRendererLike }) {
     this.invoiceStatusLogOrm = new InvoiceStatusLogOrm({ sqlService: opt.sqlService })
     this.paymentStatusLogOrm = new PaymentStatusLogOrm({ sqlService: opt.sqlService })
     this.invoicesOrm = new InvoicesOrm({ sqlService: opt.sqlService, statusLogOrm: this.invoiceStatusLogOrm })
@@ -1129,7 +1129,7 @@ export class InvoiceService {
 
   public async generateInvoicePdfBuffer(invoiceId: number): Promise<Buffer> {
     const { invoice, items, customer } = await this.getInvoiceBundle(invoiceId)
-    const renderer = new InvoicePdfRenderer({
+    const renderer = this.opt.pdfRenderer ?? new InvoicePdfRenderer({
       siteConfig: this.opt.siteConfig,
       paymentDetailsInHeader: this.opt.paymentDetailsInHeader,
     })

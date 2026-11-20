@@ -2,6 +2,7 @@
 export { MollieService } from './services/mollie_service'
 export { CustomerService } from './services/customer_service'
 export { InvoiceService } from './services/invoice_service'
+export type { InvoicePdfRenderInput, InvoicePdfRendererLike } from './services/invoice_pdf_renderer'
 export { InvoiceAuditService } from './services/invoice_audit_service'
 export { SubscriptionService } from './services/subscription_service'
 
