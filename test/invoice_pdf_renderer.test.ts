@@ -40,12 +40,13 @@ beforeEach(() => {
   page = 0
   // Keep the real PDFKit layout and PDF stream; record the actual text heights.
   const originalText = PDFDocument.prototype.text
-  jest.spyOn(PDFDocument.prototype, 'text').mockImplementation(function(this: any, text: string, x: number, y: number, options: any) {
+  jest.spyOn(PDFDocument.prototype as any, 'text').mockImplementation(function(this: any, ...args: any[]) {
+    const [text, x, y, options] = args as [string, number, number, any]
     calls.push({ text, x, y, height: this.heightOfString(text, options), page, options })
-    return originalText.call(this, text, x, y, options)
+    return (originalText as any).apply(this, args)
   })
   const originalAddPage = PDFDocument.prototype.addPage
-  jest.spyOn(PDFDocument.prototype, 'addPage').mockImplementation(function(options) {
+  jest.spyOn(PDFDocument.prototype as any, 'addPage').mockImplementation(function(this: any, options?: any) {
     page++
     return originalAddPage.call(this, options)
   })
@@ -163,8 +164,8 @@ test('InvoiceService uses a custom pdfRenderer instead of the built-in layout', 
 test.each([undefined, false, true])('InvoiceService forwards placement option (%s)', async paymentDetailsInHeader => {
   const bundle = { invoice, items: [item], customer }
   const output = Buffer.from('synthetic-pdf')
-  const renderSpy = jest.spyOn(InvoicePdfRenderer.prototype, 'render').mockImplementation(async function(input) {
-    expect((this as any).opt.paymentDetailsInHeader).toBe(paymentDetailsInHeader)
+  const renderSpy = jest.spyOn(InvoicePdfRenderer.prototype, 'render').mockImplementation(async function(this: any, input) {
+    expect(this.opt.paymentDetailsInHeader).toBe(paymentDetailsInHeader)
     expect(input).toEqual(bundle)
     return output
   })
