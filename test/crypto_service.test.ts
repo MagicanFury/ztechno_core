@@ -1,4 +1,4 @@
-import { ZCryptoService } from '../src/crypto_service'
+import { ZCryptoService } from '../src/core/crypto_service'
 
 test('encrypt and decrypt with HashStruct', () => {
   const originalText = 'Hello, World!'
