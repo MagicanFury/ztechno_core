@@ -82,13 +82,15 @@ test('places payment details below supplier VAT without moving the customer bloc
   const customerY = text(customer.company!).y
   calls = []
   await render(true)
-  const payment = text('Betalingsgegevens:')
-  const vat = text(siteConfig.company.btwNr)
+  const payment = text(`IBAN: ${siteConfig.company.iban}`)
+  const vat = text(`BTW: ${siteConfig.company.btwNr}`)
   expect(payment.x).toBe(320)
   expect(payment.options).toEqual({ width: 230, align: 'right' })
   expect(payment.y).toBeCloseTo(vat.y + vat.height + 10)
   expect(text(customer.company!).y).toBe(customerY)
-  expect(calls.filter(call => call.text === 'Betalingsgegevens:')).toHaveLength(1)
+  // The header layout has no "Betalingsgegevens:" heading and shows each payment line once.
+  expect(calls.some(call => call.text === 'Betalingsgegevens:')).toBe(false)
+  expect(calls.filter(call => call.text === `IBAN: ${siteConfig.company.iban}`)).toHaveLength(1)
   const reference = text(`O.v.v.: ${invoice.invoice_number}`)
   expect(text(`Factuur ${invoice.invoice_number}`).y).toBeGreaterThanOrEqual(reference.y + reference.height)
   expect(text('Product / Dienst').y).toBeGreaterThan(reference.y + reference.height)
@@ -102,19 +104,12 @@ test('keeps payment terms and description in footer when payments move', async (
   }
 })
 
-test('omits missing bank name and measures wrapped header payment lines', async () => {
-  await render(true, {}, { ...siteConfig, company: { ...siteConfig.company, bankName: '' } })
-  expect(calls.some(call => call.text.startsWith('Bank:'))).toBe(false)
-  calls = []
-  await render(true, {}, {
-    ...siteConfig,
-    company: { ...siteConfig.company, company: 'Voorbeeld Techniek '.repeat(5), bankName: 'Voorbeeldbank '.repeat(10) },
-  })
-  const bank = calls.find(call => call.text.startsWith('Bank:'))!
-  const holder = calls.find(call => call.text.startsWith('T.n.v.:'))!
-  expect(bank.height).toBeGreaterThan(20)
-  expect(holder.y).toBeGreaterThanOrEqual(bank.y + bank.height)
+test('shows only IBAN and reference in the header and keeps the invoice title below them', async () => {
+  await render(true, {}, { ...siteConfig, company: { ...siteConfig.company, bankName: 'Voorbeeldbank '.repeat(10) } })
+  expect(calls.some(call => call.text.startsWith('Bank:') || call.text.startsWith('T.n.v.:'))).toBe(false)
+  const iban = text(`IBAN: ${siteConfig.company.iban}`)
   const reference = text(`O.v.v.: ${invoice.invoice_number}`)
+  expect(reference.y).toBeGreaterThanOrEqual(iban.y + iban.height)
   expect(text(`Factuur ${invoice.invoice_number}`).y).toBeGreaterThanOrEqual(reference.y + reference.height)
 })
 
@@ -133,7 +128,7 @@ test('wraps long customer details within the left column beside header payment d
   await renderer.render({ invoice, items: [item], customer: { ...customer, company: longCompany } })
   const company = text(longCompany)
   expect(company.options.width).toBe(260)
-  expect(company.x + company.options.width).toBeLessThan(text('Betalingsgegevens:').x)
+  expect(company.x + company.options.width).toBeLessThan(text(`IBAN: ${siteConfig.company.iban}`).x)
   expect(company.height).toBeGreaterThan(30)
   expect(text(`Factuur ${invoice.invoice_number}`).y).toBeGreaterThan(text('Nederland').y)
 })
@@ -142,7 +137,7 @@ test('renders multipage invoices with repeated table headers and payment details
   await render(true, {}, siteConfig, Array.from({ length: 100 }, (_, index) => ({ ...item, description: `Dienst ${index + 1}` })))
   expect(page).toBeGreaterThan(1)
   expect(calls.filter(call => call.text === 'Product / Dienst').length).toBeGreaterThan(1)
-  expect(calls.filter(call => call.text === 'Betalingsgegevens:')).toHaveLength(1)
+  expect(calls.filter(call => call.text === `IBAN: ${siteConfig.company.iban}`)).toHaveLength(1)
   expect(calls.filter(call => call.text.startsWith('Dienst '))).toHaveLength(100)
 })
 
