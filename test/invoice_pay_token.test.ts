@@ -50,6 +50,18 @@ test('a legacy token still resolves an unpaid invoice that was resent', async ()
   await expect(service.resolvePayToken(token)).rejects.toThrow('Pay token expired')
 })
 
+test('the binding is the same for a string created_at and the equivalent UTC Date, in any process timezone', async () => {
+  const { service } = createService(jest.fn())
+  const bind = (created_at: any) => (service as any).computePayTokenBind({ id: 303, created_at })
+  const fromString = bind('2026-11-04 10:00:00')
+  expect(fromString).toMatch(/^[0-9a-f]{16}$/)
+  expect(bind(new Date('2026-11-04T10:00:00Z'))).toBe(fromString)
+  expect(bind('2026-11-04T10:00:00')).toBe(fromString)
+  expect(bind('2026-11-04 10:00:01')).not.toBe(fromString)
+  expect(bind(undefined)).toBeNull()
+  expect(bind('not a date')).toBeNull()
+})
+
 test('a token with an invalid signature is rejected', async () => {
   const { service } = createService(jest.fn(async () => invoiceA))
   await expect(service.resolvePayToken(`inv_303_${'a'.repeat(32)}.${'0'.repeat(64)}`)).rejects.toThrow('Invalid pay token')

@@ -324,15 +324,30 @@ export class InvoiceService {
   }
 
   /**
+   * The stored creation time as a `YYYY-MM-DD HH:MM:SS` wall-clock string. A Date is read in UTC (the service
+   * parses SQL datetimes with dateStringTimezone '+00:00'), so the result does not depend on the process timezone
+   * and is identical whether created_at arrives as a string or as a Date.
+   */
+  private payTokenCreatedAtKey(createdAt: string | Date | undefined): string | null {
+    if (createdAt instanceof Date) {
+      return Number.isNaN(createdAt.getTime()) ? null : createdAt.toISOString().substring(0, 19).replace('T', ' ')
+    }
+    if (typeof createdAt === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(createdAt)) {
+      return createdAt.substring(0, 19).replace('T', ' ')
+    }
+    return null
+  }
+
+  /**
    * Ties a token to one specific invoice record (id + creation time), so the same id in another
    * database (same pay token secret) can never validate the token. Returns null when the invoice has no usable created_at.
    */
   private computePayTokenBind(invoice: ZInvoice): string | null {
-    const createdAt = invoice.created_at ? new Date(invoice.created_at as any).getTime() : NaN
-    if (!invoice.id || !Number.isFinite(createdAt)) {
+    const createdAtKey = this.payTokenCreatedAtKey(invoice.created_at)
+    if (!invoice.id || !createdAtKey) {
       return null
     }
-    return crypto.createHmac('sha256', this.payTokenSecret).update(`bind:${invoice.id}:${createdAt}`).digest('hex').substring(0, 16)
+    return crypto.createHmac('sha256', this.payTokenSecret).update(`bind:${invoice.id}:${createdAtKey}`).digest('hex').substring(0, 16)
   }
 
   /** Whether a token that is not the invoice's current token may still open this invoice (superseded by a resend). */
