@@ -310,8 +310,9 @@ export class InvoiceService {
     return crypto.createHash('sha256').update(raw).digest('hex')
   }
 
-  private parseInvoiceIdFromPayTokenRaw(raw: string): number | null {
-    const match = raw.match(/^inv_(\d+)_/)
+  /** Parses `inv_<id>_<nonce>` (legacy) and `inv_<id>_<nonce>_<bind>` (bound to the invoice, see computePayTokenBind). */
+  private parsePayTokenRaw(raw: string): { invoiceId: number, bind: string | null } | null {
+    const match = raw.match(/^inv_(\d+)_[0-9a-f]+(?:_([0-9a-f]{16}))?$/)
     if (!match) {
       return null
     }
@@ -319,7 +320,32 @@ export class InvoiceService {
     if (!Number.isSafeInteger(invoiceId) || invoiceId <= 0) {
       return null
     }
-    return invoiceId
+    return { invoiceId, bind: match[2] ?? null }
+  }
+
+  /**
+   * Ties a token to one specific invoice record (id + creation time), so the same id in another
+   * database (same pay token secret) can never validate the token. Returns null when the invoice has no usable created_at.
+   */
+  private computePayTokenBind(invoice: ZInvoice): string | null {
+    const createdAt = invoice.created_at ? new Date(invoice.created_at as any).getTime() : NaN
+    if (!invoice.id || !Number.isFinite(createdAt)) {
+      return null
+    }
+    return crypto.createHmac('sha256', this.payTokenSecret).update(`bind:${invoice.id}:${createdAt}`).digest('hex').substring(0, 16)
+  }
+
+  /** Whether a token that is not the invoice's current token may still open this invoice (superseded by a resend). */
+  private isSupersededTokenAllowed(invoice: ZInvoice, parsed: { bind: string | null }): boolean {
+    if (parsed.bind) {
+      const expected = this.computePayTokenBind(invoice)
+      if (!expected) {
+        return false
+      }
+      return crypto.timingSafeEqual(new Uint8Array(Buffer.from(expected)), new Uint8Array(Buffer.from(parsed.bind)))
+    }
+    // Legacy tokens carry no binding: never expose an already paid/finalized invoice through them.
+    return !this.isInvoiceFinalizedForPay(invoice)
   }
 
   private async getInvoiceBundle(invoiceId: number) {
@@ -361,9 +387,10 @@ export class InvoiceService {
     return { amount_due: Number(amount_due.toFixed(2)), items: mapped }
   }
 
-  private createPayTokenRaw(invoiceId: number) {
+  private createPayTokenRaw(invoice: ZInvoice) {
     const nonce = crypto.randomBytes(16).toString('hex')
-    return `inv_${invoiceId}_${nonce}`
+    const bind = this.computePayTokenBind(invoice)
+    return bind ? `inv_${invoice.id}_${nonce}_${bind}` : `inv_${invoice.id}_${nonce}`
   }
 
   private isInvoicePaid(invoice?: ZInvoice) {
@@ -463,7 +490,7 @@ export class InvoiceService {
     if (this.isInvoiceFinalizedForPay(invoice)) {
       throw new Error(`Invoice ${invoice.invoice_number} is already finalized`)
     }
-    const raw = this.createPayTokenRaw(invoice.id!)
+    const raw = this.createPayTokenRaw(invoice)
     const token = this.buildPayToken(raw)
     const expiresAtDate = new Date(Date.now() + this.payTokenLifetimeMs)
     const expiresAt = formatDatetime(expiresAtDate)
@@ -505,10 +532,14 @@ export class InvoiceService {
     const tokenHash = this.hashPayTokenRaw(raw)
     let invoice = await this.invoicesOrm.findByPayTokenHash(tokenHash)
     if (!invoice) {
-      // Backward-compatible fallback: token may be valid but superseded by a newer resend.
-      const invoiceId = this.parseInvoiceIdFromPayTokenRaw(raw)
-      if (invoiceId) {
-        invoice = await this.invoicesOrm.findById(invoiceId)
+      // Fallback: token may be valid but superseded by a newer resend. The invoice id in the token alone is not
+      // proof of ownership (databases sharing the pay token secret can reuse ids), so the token must be bound to it.
+      const parsed = this.parsePayTokenRaw(raw)
+      if (parsed) {
+        const candidate = await this.invoicesOrm.findById(parsed.invoiceId)
+        if (candidate && this.isSupersededTokenAllowed(candidate, parsed)) {
+          invoice = candidate
+        }
       }
     }
     if (!invoice) {

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.157] - 2026-11-26
+
+### Fixed
+- Pay links could open an unrelated invoice: when a token was no longer the invoice's current token (superseded by a resend), `InvoiceService.resolvePayToken` loaded the invoice by the id inside the token without checking it belonged to that invoice. Two databases sharing the pay token secret and reusing an id could therefore expose each other's invoices.
+
+### Changed
+- Newly issued pay tokens are bound to the invoice record (id and creation time). A superseded token only opens the invoice when this binding matches.
+- Tokens issued before this release carry no binding and keep working after a resend, but only for invoices that are not yet paid or finalized.
+
+---
+
 ## [0.0.156] - 2026-11-20
 
 ### Added
