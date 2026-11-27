@@ -18,7 +18,9 @@ interface SingleDKIMKeyOptions extends OptionalOptions {
 }
 export type MailResponse = SMTPTransport.SentMessageInfo
 export type MailServiceOptions = {auth: { user: string; pass: string }, mailSender: string, dkim?: SingleDKIMKeyOptions, sqlService: ZSQLService, hashSalt?: string, dirTemplate?: string, baseInject?: { logoSrc?: string, baseUrl?: string, title: string, content: string } }
-export type MailOptionsBase = {recipient: string, subject: string, from?: string, replyTo?: string | string[], cc?: string | string[], priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions, attachments?: MailAttachment[]}
+/** Optional label stored with the mail log entry; never sent to the transport. */
+export type MailLogMeta = { category?: string, contextType?: string, contextId?: string | number }
+export type MailOptionsBase = {recipient: string, subject: string, from?: string, replyTo?: string | string[], cc?: string | string[], priority?: "high" | "normal" | "low", dkim?: SingleDKIMKeyOptions, attachments?: MailAttachment[], meta?: MailLogMeta}
 export type MailOptionsText = MailOptionsBase & {body: string}
 export type MailOptionsHtml = MailOptionsBase & {html: string}
 export type MailOptions = MailOptionsBase & {body?: string, html?: string}
@@ -38,3 +40,26 @@ export type ZMailBlacklist = {
   created_at: string
 }
 export type ZMailBlacklistSearch = Pick<ZMailBlacklist, 'email'|'is_blacklisted'>
+
+export type ZMailLogStatus = 'sent' | 'failed' | 'skipped_blacklisted'
+export type ZMailLog = {
+  id: number
+  status: ZMailLogStatus
+  recipient: string
+  cc: string | null
+  from_address: string | null
+  subject: string
+  category: string | null
+  context_type: string | null
+  context_id: string | null
+  message_id: string | null
+  smtp_response: string | null
+  accepted: string | null
+  rejected: string | null
+  error_message: string | null
+  attachment_count: number
+  created_at: string
+}
+export type ZMailLogCreate = Pick<ZMailLog, 'status' | 'recipient' | 'subject'> & Partial<Omit<ZMailLog, 'id' | 'status' | 'recipient' | 'subject' | 'created_at'>>
+export type ZMailLogSearch = { status?: ZMailLogStatus, category?: string, context_type?: string, context_id?: string, q?: string }
+export type ZMailLogPage = { rows: ZMailLog[], total: number, page: number, pageSize: number }

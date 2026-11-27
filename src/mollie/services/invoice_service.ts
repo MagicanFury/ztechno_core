@@ -1211,6 +1211,7 @@ export class InvoiceService {
       cc,
       subject,
       template: 'template.html',
+      meta: { category: isReceipt ? 'receipt' : 'invoice', contextType: 'invoice', contextId: invoiceId },
       inject: {
         title,
         content,

@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `ZMailService` now logs every mail in a new `email_log` table: `sent`, `failed` (transport error or all recipients rejected, including the SMTP error) or `skipped_blacklisted`. Only recipient, subject and delivery details are stored, never the body. Logging failures never affect sending.
+- Optional `meta` (`category`, `contextType`, `contextId`) on mail options links a log row to e.g. an invoice; it is not passed to the transport.
+- `ZMailService.ensureLogTable()` creates the table and `ZMailService.listLog()` returns a filtered, paginated page. `ZMailLogOrm` and the `ZMailLog*` types are exported.
+- `InvoiceService.sendInvoiceEmail` tags its mails with the invoice id.
+- Delivery means accepted by the SMTP server; later bounces are not tracked.
+
+---
+
 ## [0.0.157] - 2026-11-26
 
 ### Fixed

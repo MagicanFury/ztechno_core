@@ -23,3 +23,4 @@ export * from './types/site_config'
 // ORM
 export { ZOrm } from './orm/orm'
 export { ZMailBlacklistOrm } from './orm/mail_blacklist_orm'
+export { ZMailLogOrm } from './orm/mail_log_orm'

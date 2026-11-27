@@ -2,14 +2,27 @@ import nodemailer from 'nodemailer'
 import fss from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
-import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailBlacklist, ZMailSendOptAll, ZMailSendOptTemplate } from "./types/mail_types"
+import { MailOptions, MailOptionsHtml, MailOptionsText, MailResponse, MailServiceOptions, ZMailBlacklist, ZMailLogCreate, ZMailLogPage, ZMailLogSearch, ZMailSendOptAll, ZMailSendOptTemplate } from "./types/mail_types"
 import { ZMailBlacklistOrm } from './orm/mail_blacklist_orm'
+import { ZMailLogOrm } from './orm/mail_log_orm'
+
+const clip = (value: unknown, max: number): string | null => {
+  if (value === undefined || value === null || value === '') return null
+  const str = String(value)
+  return str.length > max ? str.slice(0, max) : str
+}
+const addressList = (value: unknown): string | null => {
+  if (value === undefined || value === null) return null
+  const list = (Array.isArray(value) ? value : [value]).map(item => typeof item === 'string' ? item : (item as any)?.address ?? '').filter(Boolean)
+  return list.length ? list.join(', ') : null
+}
 
 export class ZMailService {
 
   protected get sql() { return this.opt.sqlService }
 
   protected blacklistOrm: ZMailBlacklistOrm
+  protected logOrm: ZMailLogOrm
   protected blacklist: ZMailBlacklist[] = []
 
   /**
@@ -18,6 +31,7 @@ export class ZMailService {
    */
   constructor(private opt: MailServiceOptions) {
     this.blacklistOrm = new ZMailBlacklistOrm(opt)
+    this.logOrm = new ZMailLogOrm(opt)
     this.opt.dirTemplate = path.isAbsolute(this.opt.dirTemplate || '') ? this.opt.dirTemplate : path.join(process.cwd(), this.opt.dirTemplate || '')
   }
 
@@ -32,6 +46,39 @@ export class ZMailService {
     return
   }
   
+  /** Creates the `email_log` table when it does not exist yet. */
+  public async ensureLogTable() {
+    await this.logOrm.ensureTableExists()
+  }
+
+  /**
+   * Lists logged mails, newest first.
+   * @param conditions - Optional filters (status, category, context, free-text search on recipient/subject)
+   * @param opt - Page (1-based) and page size (max 100)
+   */
+  public async listLog(conditions?: ZMailLogSearch, opt?: { page?: number, pageSize?: number }): Promise<ZMailLogPage> {
+    return await this.logOrm.findPage(conditions, opt)
+  }
+
+  /** Writes a log row. A logging failure must never affect sending, so errors are only reported on the console. */
+  private async writeLog(mailOpts: MailOptions, entry: Pick<ZMailLogCreate, 'status'> & Partial<ZMailLogCreate>) {
+    try {
+      await this.logOrm.create({
+        recipient: clip(addressList(mailOpts.recipient), 512) ?? '',
+        cc: clip(addressList(mailOpts.cc), 1024),
+        from_address: clip(mailOpts.from || this.opt.mailSender, 512),
+        subject: clip(mailOpts.subject, 1024) ?? '',
+        category: clip(mailOpts.meta?.category, 64),
+        context_type: clip(mailOpts.meta?.contextType, 64),
+        context_id: clip(mailOpts.meta?.contextId, 64),
+        attachment_count: mailOpts.attachments?.length ?? 0,
+        ...entry,
+      })
+    } catch (err) {
+      console.error('ZMailService: could not write mail log entry:', (err as Error)?.message ?? err)
+    }
+  }
+
   /**
    * Refreshes the email blacklist from the database
    * @returns Promise that resolves when the blacklist has been refreshed
@@ -89,13 +136,9 @@ export class ZMailService {
   public async send(mailOpts: MailOptions): Promise<MailResponse|undefined> {
     const allow = await this.allowSend(mailOpts)
     if (!allow) {
+      await this.writeLog(mailOpts, { status: 'skipped_blacklisted' })
       return
     }
-    const mailTransporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: this.opt.auth,
-    })
-
     const mailDetails: nodemailer.SendMailOptions = {
       from: mailOpts.from || this.opt.mailSender,
       to: mailOpts.recipient,
@@ -109,11 +152,38 @@ export class ZMailService {
       attachments: mailOpts.attachments,
     }
 
-    return await new Promise((resolve, reject) => {
-      mailTransporter.sendMail(mailDetails, function (err: any, data: MailResponse) {
-        return err ? reject(err) : resolve(data)
+    let data: MailResponse
+    try {
+      const mailTransporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: this.opt.auth,
       })
+      data = await new Promise<MailResponse>((resolve, reject) => {
+        mailTransporter.sendMail(mailDetails, function (err: any, data: MailResponse) {
+          return err ? reject(err) : resolve(data)
+        })
+      })
+    } catch (err: any) {
+      await this.writeLog(mailOpts, {
+        status: 'failed',
+        error_message: clip(err?.message ?? err, 4000),
+        smtp_response: clip(err?.response ?? (err?.code ? `${err.code}${err.responseCode ? ` ${err.responseCode}` : ''}` : null), 1024),
+      })
+      throw err
+    }
+
+    const accepted = Array.isArray(data?.accepted) ? data.accepted : undefined
+    const rejected = Array.isArray(data?.rejected) ? data.rejected : undefined
+    const allRejected = accepted !== undefined && accepted.length === 0
+    await this.writeLog(mailOpts, {
+      status: allRejected ? 'failed' : 'sent',
+      message_id: clip(data?.messageId, 512),
+      smtp_response: clip(data?.response, 1024),
+      accepted: clip(addressList(accepted), 4000),
+      rejected: clip(addressList(rejected), 4000),
+      error_message: allRejected ? 'Alle ontvangers zijn door de mailserver geweigerd.' : null,
     })
+    return data
   }
 
   /**

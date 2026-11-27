@@ -9,6 +9,7 @@ export {
   ZUserService,
   ZOrm,
   ZMailBlacklistOrm,
+  ZMailLogOrm,
 } from './core'
 
 export type {
